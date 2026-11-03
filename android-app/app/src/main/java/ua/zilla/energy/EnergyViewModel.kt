@@ -4,12 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import ua.zilla.energy.data.ConnectionTracker
@@ -21,6 +22,7 @@ import ua.zilla.energy.model.AppSettings
 import ua.zilla.energy.model.ConnectionStatus
 import ua.zilla.energy.model.DataSource
 import ua.zilla.energy.model.EnergyEvent
+import ua.zilla.energy.model.EnergySnapshot
 import ua.zilla.energy.model.EnergyUiState
 import ua.zilla.energy.model.EventKind
 import ua.zilla.energy.model.PowerPoint
@@ -31,18 +33,20 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
     private val mutable = MutableStateFlow(EnergyUiState())
     val ui: StateFlow<EnergyUiState> = mutable.asStateFlow()
 
-    private var polling: Job? = null
-
     init {
         viewModelScope.launch {
             store.events.collect { events -> mutable.value = mutable.value.copy(events = events) }
         }
         viewModelScope.launch {
-            store.settings.collectLatest { settings ->
+            store.settings.collect { settings ->
                 mutable.value = mutable.value.copy(settings = settings)
-                polling?.cancel()
-                polling = launch { runFor(settings) }
             }
+        }
+        // Camera edits and event writes must not restart device polling.
+        viewModelScope.launch {
+            store.settings.map { it.copy(cameras = emptyList()) }
+                .distinctUntilChanged()
+                .collectLatest { runFor(it) }
         }
     }
 
@@ -74,6 +78,7 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
         val tracker = ConnectionTracker(offlineAfter = 3)
         mutable.value = mutable.value.copy(
             connection = ConnectionStatus.CONNECTING,
+            snapshot = EnergySnapshot(source = DataSource.LOCAL_API),
             history = emptyList(),
             consecutiveMisses = 0,
             error = null
