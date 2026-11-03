@@ -10,7 +10,8 @@ which remains unchanged. It is a separate Gradle project under `android-app/`.
 - Dashboard: battery, grid/solar/off-grid metrics, battery gauge and smooth
   Canvas energy chart.
 - Diagnostics: persisted event timeline, outage/recovery classification,
-  probe response time, export to Android share sheet.
+  probe response time, export to Android share sheet, and optional device-reported
+  Wi-Fi RSSI/SSID and ES operating mode.
 - Cameras: local credential-free RTSP streams with Media3 ExoPlayer. One active
   decoder at a time, camera list persisted in DataStore.
 - Control: documented read-only capability placeholders. **No write commands**
@@ -50,14 +51,19 @@ then set a *private IPv4 LAN* endpoint (e.g. `192.168.0.61:30000`) and turn
 off Demo mode to begin live queries.
 
 The UDP client:
-- Issues only `ES.GetStatus`, serialized, at a configurable 15–300 second
-  interval; default 30 seconds.
+- Issues only `ES.GetStatus` by default, serialized, at a configurable
+  15–300 second interval; default 30 seconds. Explicitly opting into advanced
+  diagnostics additionally requests `Wifi.GetStatus` and `ES.GetMode` at most
+  once every 5 minutes. Both are read-only and can fail independently.
 - Opens a client receive socket on the same port as the device request,
   to support devices that respond only when UDP source/destination ports
   match. This may fail if another app binds the same local port.
 - Binds to Android's **Wi-Fi network**, including a Wi-Fi network without
   internet, rather than silently routing through mobile data.
-- Verifies source device IP and request ID; rejects public IPs.
+- Verifies source device IP/UDP port and request ID; rejects public IPs.
+- Pins the firmware-reported response `src` per endpoint per session when
+  present. If the reported device changes at the same IP, stops monitoring
+  until the DHCP binding is verified. Raw `src` is never saved in logs.
 - Uses bounded receive timeouts, logs event transitions, and requires three
   consecutive misses to label connectivity **offline**.
 - Avoids `Bat.GetStatus` by default, because some firmware reports implicate
@@ -86,6 +92,9 @@ RTSP previews run on the phone only; the app does not relay camera streams.
   **no foreground service or guaranteed background monitoring yet**.
 - Firmware versions, model-specific capabilities, BLE pairing, cloud fallback,
   firmware updates and physical reboot counters are **not implemented**.
+- Missing Wi-Fi or mode fields must be shown as unknown, not as zeros.
+  Battery power sign/direction is firmware-dependent and never inferred.
+  Readings are marked as last-known when connectivity is degraded/offline.
 - There is no pairing flow and no real-device compatibility validation.
 - Controls are informational (not wired to the device).
 - Camera player has only a basic RTSP view, not ONVIF discovery or PTZ.
@@ -111,3 +120,14 @@ without creating an APK first. **No APK has been assembled.**
 4. Integrate secure RTSP authentication and optional ONVIF discovery.
 5. Add localization (Ukrainian / English), backup/import of settings,
    and carefully permissioned per-model write controls.
+
+## Marstek-only development focus (November 2026)
+
+Current navigation hides the unfinished Cameras screen without deleting its
+source. Marstek LAN connectivity, reliable read-only telemetry and diagnosing
+Wi-Fi dropouts take priority. The backend does **not** identify physical inverter
+reboots; it only tracks API responses. All advanced requests are optional to
+minimize potential load on problematic firmware.
+
+API contract: [Marstek Device Local API Rev 3.1.2](https://static-eu.marstekcloud.com/ems/resource/agreement/MarstekDeviceOpenApi.pdf),
+sections Wifi.GetStatus, ES.GetStatus, ES.GetMode.
