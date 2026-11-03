@@ -7,95 +7,140 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.SocketTimeoutException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import ua.zilla.energy.model.DataSource
+import ua.zilla.energy.model.EnergyMode
 import ua.zilla.energy.model.EnergySnapshot
+import ua.zilla.energy.model.WifiDiagnostics
 
 /**
- * Read-only Marstek UDP local API client.
+ * Read-only local Marstek protocol adapter (Local API Rev 3.1.2).
  *
- * Firmware implementations may reply only if source and destination ports match.
- * Socket is therefore bound to the configured *device* port. Do not run a
- * competing listener on the Android device. All operations are serialized.
- *
- * Only ES.GetStatus is used. No Bat.GetStatus, mode changes or resets:
- * some firmware variants have been reported unstable under polling.
+ * Calls are serialized and never alter hardware settings. The source string
+ * returned by firmware is pinned per host:port until app restart or endpoint
+ * change, to detect a DHCP reassignment. It is never persisted/exported.
  */
 class MarstekUdpClient(private val context: Context) {
     private val mutex = Mutex()
-    private var requestId: Int = 0
+    private var requestId = 0
+    private var endpoint: String? = null
+    private var deviceSource: String? = null
+    private var lastRequestAtMs = 0L
 
-    suspend fun readStatus(host: String, port: Int): EnergySnapshot =
-        mutex.withLock {
-            require(LocalAddress.valid(host)) { "Enter a private LAN IPv4 address" }
-            require(port in 1..65535)
-            val result = request(host, port, "ES.GetStatus", JSONObject().put("id", 0))
-            EnergySnapshot(
-                timestampMs = System.currentTimeMillis(),
-                source = DataSource.LOCAL_API,
-                socPercent = result.numeric("bat_soc")?.toInt()?.coerceIn(0, 100),
-                batteryPowerW = result.numeric("bat_power"),
-                gridPowerW = result.numeric("ongrid_power"),
-                offgridPowerW = result.numeric("offgrid_power"),
-                solarPowerW = result.numeric("pv_power"),
-                batteryCapacityWh = result.numeric("bat_cap")
-            )
+    suspend fun readStatus(host: String, port: Int): EnergySnapshot = mutex.withLock {
+        val result = request(host, port, "ES.GetStatus")
+        MarstekProtocol.parseEnergy(result)
+    }
+
+    data class AdvancedReading(
+        val wifi: WifiDiagnostics?,
+        val mode: EnergyMode,
+        val wifiError: String? = null,
+        val modeError: String? = null
+    )
+
+    /**
+     * Explicitly opted-in diagnostics, intended no more often than 5 min.
+     * Read failures are isolated; main energy polling remains independent.
+     */
+    suspend fun readAdvanced(host: String, port: Int): AdvancedReading = mutex.withLock {
+        var wifi: WifiDiagnostics? = null
+        var mode = EnergyMode.UNKNOWN
+        var wifiError: String? = null
+        var modeError: String? = null
+        try {
+            wifi = MarstekProtocol.parseWifi(request(host, port, "Wifi.GetStatus"))
+        } catch (error: Exception) {
+            if (error is MarstekDeviceChanged) throw error
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            wifiError = error.javaClass.simpleName
         }
+        try {
+            mode = MarstekProtocol.parseMode(request(host, port, "ES.GetMode"))
+        } catch (error: Exception) {
+            if (error is MarstekDeviceChanged) throw error
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            modeError = error.javaClass.simpleName
+        }
+        AdvancedReading(wifi, mode, wifiError, modeError)
+    }
 
     private suspend fun request(
-        host: String,
-        port: Int,
-        method: String,
-        params: JSONObject
+        host: String, port: Int, method: String
     ): JSONObject = withContext(Dispatchers.IO) {
+        require(LocalAddress.valid(host)) { "Only private LAN IPv4 addresses are accepted" }
+        require(port in 1..65535)
+        val key = "$host:$port"
+        if (endpoint != key) {
+            endpoint = key
+            deviceSource = null
+        }
+
+        // Keep a gap between read requests to reduce firmware load.
+        val gap = 750L - (android.os.SystemClock.elapsedRealtime() - lastRequestAtMs)
+        if (gap > 0) delay(gap)
+
         requestId = if (requestId >= Int.MAX_VALUE - 1) 1 else requestId + 1
         val id = requestId
-        val payload = JSONObject()
-            .put("id", id).put("method", method).put("params", params)
+        val message = JSONObject()
+            .put("id", id)
+            .put("method", method)
+            .put("params", JSONObject().put("id", 0))
             .toString().toByteArray(Charsets.UTF_8)
 
-        // Wi-Fi must be used even when the router has no internet, and
-        // Android's default network is mobile data.
-        val cm = context.getSystemService(ConnectivityManager::class.java)
-        val wifi = cm.allNetworks.firstOrNull { network ->
-            cm.getNetworkCapabilities(network)?.hasTransport(
+        // Explicit Wi-Fi routing: mobile data must not take over when ISP is down.
+        val manager = context.getSystemService(ConnectivityManager::class.java)
+        val wifi = manager.allNetworks.firstOrNull { network ->
+            manager.getNetworkCapabilities(network)?.hasTransport(
                 NetworkCapabilities.TRANSPORT_WIFI
             ) == true
-        } ?: throw IllegalStateException("Wi-Fi network unavailable")
+        } ?: throw IllegalStateException("Wi-Fi LAN not available")
 
         val target = InetAddress.getByName(host)
-        val receive = ByteArray(8192)
-        DatagramSocket(null).use { socket ->
-            socket.reuseAddress = true
-            socket.bind(InetSocketAddress("0.0.0.0", port))
-            wifi.bindSocket(socket)
-            socket.soTimeout = 2500
+        try {
+            DatagramSocket(null).use { socket ->
+                socket.reuseAddress = true
+                // Marstek firmware/client implementations sometimes require
+                // local UDP port to equal the target port.
+                socket.bind(InetSocketAddress("0.0.0.0", port))
+                wifi.bindSocket(socket)
+                socket.soTimeout = 2_500
+                socket.send(DatagramPacket(message, message.size, target, port))
 
-            socket.send(DatagramPacket(payload, payload.size, target, port))
-            val startedAt = System.nanoTime()
-            while (System.nanoTime() - startedAt < 3_500_000_000L) {
-                val packet = DatagramPacket(receive, receive.size)
-                socket.receive(packet)
-                if (packet.address != target) continue // no spoofed source
-                val response = try {
-                    JSONObject(String(packet.data, packet.offset, packet.length, Charsets.UTF_8))
-                } catch (_: Exception) { continue }
-                if (response.optInt("id", -1) != id) continue
-                if (response.has("error")) throw IllegalStateException("Marstek API returned an error")
-                val body = response.optJSONObject("result")
-                    ?: throw IllegalStateException("Missing API result")
-                return@withContext body
+                val receive = ByteArray(8192)
+                // Ignore unrelated data, wrong request IDs and other hosts.
+                val deadline = android.os.SystemClock.elapsedRealtime() + 3_000L
+                while (android.os.SystemClock.elapsedRealtime() < deadline) {
+                    val packet = DatagramPacket(receive, receive.size)
+                    try {
+                        socket.receive(packet)
+                    } catch (_: SocketTimeoutException) {
+                        throw SocketTimeoutException("Marstek UDP response timeout")
+                    }
+                    if (packet.address != target || packet.port != port) continue
+                    val reply = try {
+                        MarstekProtocol.parseReply(
+                            String(packet.data, packet.offset, packet.length, Charsets.UTF_8), id
+                        )
+                    } catch (_: IllegalArgumentException) {
+                        continue
+                    }
+                    val actual = reply.source
+                    if (actual != null && deviceSource != null && actual != deviceSource) {
+                        throw MarstekDeviceChanged()
+                    }
+                    if (actual != null && deviceSource == null) deviceSource = actual
+                    return@withContext reply.result
+                }
+                throw SocketTimeoutException("Marstek UDP response timeout")
             }
-            error("Marstek reply timeout")
+        } finally {
+            lastRequestAtMs = android.os.SystemClock.elapsedRealtime()
         }
     }
-}
-
-private fun JSONObject.numeric(key: String): Double? {
-    if (!has(key) || isNull(key)) return null
-    return opt(key)?.toString()?.toDoubleOrNull()?.takeIf { it.isFinite() }
 }
