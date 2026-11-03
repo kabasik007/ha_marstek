@@ -45,6 +45,14 @@ All communication stays on your local network; no cloud account is required.
    The default UDP port is `30000`; if you configured a custom port
    (the API recommends `49152`–`65535`), enter it during manual setup.
 
+## Standalone LAN reliability monitor (experimental)
+
+A read-only Python watchdog for Windows/Linux/macOS is available in
+[tools/marstek_watch.py](tools/marstek_watch.py). It records UDP probe results,
+short interruptions and confirmed connectivity outages to a local JSONL log,
+without Home Assistant or an internet connection. See [setup and safety
+notes](tools/README.md). A missed reply **does not prove a device reboot**.
+
 ## Installation
 
 ### HACS (recommended)
