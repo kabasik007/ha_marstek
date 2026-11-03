@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ua.zilla.energy.model.ConnectionStatus
-import ua.zilla.energy.model.DataSource
 import ua.zilla.energy.model.EnergyUiState
 import ua.zilla.energy.ui.components.*
 import ua.zilla.energy.ui.theme.Mint
@@ -70,9 +69,12 @@ fun DashboardScreen(state: EnergyUiState, onSettings: () -> Unit, modifier: Modi
                         style = MaterialTheme.typography.displayMedium, color = Mint.deep,
                         fontWeight = FontWeight.Bold)
                 }
-                Text(if (snap.batteryPowerW == null) "Unknown"
-                     else if (snap.batteryPowerW > 0) "Charging*" else if (snap.batteryPowerW < 0) "Discharging*" else "Idle",
-                    color = Mint.muted, style = MaterialTheme.typography.bodySmall)
+                Column {
+                    Text("Battery power", color = Mint.muted,
+                        style = MaterialTheme.typography.labelSmall)
+                    Text(watts(snap.batteryPowerW), color = Mint.primary,
+                        style = MaterialTheme.typography.titleMedium)
+                }
             }
             LinearProgressIndicator(
                 progress = { (snap.socPercent ?: 0) / 100f },
@@ -80,10 +82,23 @@ fun DashboardScreen(state: EnergyUiState, onSettings: () -> Unit, modifier: Modi
                 color = Mint.leaf,
                 trackColor = Mint.subtle
             )
-            Text("* Battery power sign conventions depend on model and firmware; verify on hardware.",
+            Text("Power direction/sign depends on firmware; no automatic charge/discharge claim.",
                 color = Mint.muted, style = MaterialTheme.typography.labelSmall)
+            if (snap.batteryCapacityWh != null)
+                Text("Reported total battery capacity: " +
+                    String.format(java.util.Locale.US, "%.2f kWh", snap.batteryCapacityWh / 1000.0),
+                    color = Mint.muted, style = MaterialTheme.typography.bodySmall)
         }
 
+        if (!state.settings.demoMode && state.lastSuccessMs != null) {
+            val stale = state.connection != ConnectionStatus.ONLINE
+            Text(
+                (if (stale) "LAST KNOWN READING • " else "Last read • ") +
+                    clockTime(state.lastSuccessMs),
+                color = if (stale) Mint.warning else Mint.muted,
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
         MintCard {
             SectionHeading("Energy flow", "Latest device readings")
             Row {
