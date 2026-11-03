@@ -1,5 +1,6 @@
 package ua.zilla.energy.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,11 +9,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,6 +25,7 @@ import ua.zilla.energy.ui.theme.Mint
 
 @Composable
 fun DiagnosticsScreen(state: EnergyUiState, onClear: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     Column(
         modifier.fillMaxSize().background(Mint.background)
             .verticalScroll(rememberScrollState()).padding(18.dp),
@@ -57,6 +61,20 @@ fun DiagnosticsScreen(state: EnergyUiState, onClear: () -> Unit, modifier: Modif
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Event timeline", style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                IconButton(
+                    enabled = state.events.isNotEmpty(),
+                    onClick = {
+                        val report = state.events.joinToString("\n") {
+                            clockTime(it.timestampMs) + " | " + it.kind.name +
+                                " | " + it.title + " | " + it.detail
+                        }
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, report)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Share diagnostic events"))
+                    }
+                ) { Icon(Icons.Default.Share, contentDescription = "Export events") }
                 TextButton(onClick = onClear, enabled = state.events.isNotEmpty()) { Text("Clear") }
             }
             if (state.events.isEmpty()) {
