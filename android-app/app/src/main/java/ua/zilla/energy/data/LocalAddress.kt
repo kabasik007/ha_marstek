@@ -18,7 +18,8 @@ object LocalAddress {
 
     fun validRtsp(raw: String): Boolean {
         val uri = try { java.net.URI(raw.trim()) } catch (_: Exception) { return false }
-        if (!uri.scheme.equals("rtsp", true) || uri.userInfo != null) return false
-        return uri.host?.let(::valid) == true && uri.port in -1..65535
+        if (!uri.scheme.equals("rtsp", true) || uri.userInfo != null ||
+            uri.rawQuery != null || uri.rawFragment != null) return false
+        return uri.host?.let(::valid) == true && (uri.port == -1 || uri.port in 1..65535)
     }
 }
