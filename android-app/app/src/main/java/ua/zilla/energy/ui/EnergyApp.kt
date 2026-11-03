@@ -30,7 +30,8 @@ fun EnergyApp(vm: EnergyViewModel) {
     Scaffold(
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                Tab.entries.forEach { item ->
+                // Camera UI is intentionally parked while Marstek reliability is prioritized.
+                Tab.entries.filter { it != Tab.CAMERAS }.forEach { item ->
                     NavigationBarItem(
                         selected = tab == item,
                         onClick = { tab = item },
@@ -47,7 +48,8 @@ fun EnergyApp(vm: EnergyViewModel) {
             Tab.HEALTH -> DiagnosticsScreen(state, onClear = vm::clearEvents, Modifier.padding(padding))
             Tab.CAMERAS -> CamerasScreen(state, onAdd = vm::addCamera, onRemove = vm::removeCamera, Modifier.padding(padding))
             Tab.CONTROL -> ControlScreen(state, Modifier.padding(padding))
-            Tab.SETTINGS -> SettingsScreen(state, vm::saveEndpoint, vm::setDemo, vm::setPollSeconds, Modifier.padding(padding))
+            Tab.SETTINGS -> SettingsScreen(state, vm::saveEndpoint, vm::setDemo, vm::setPollSeconds,
+                vm::setAdvancedDiagnostics, Modifier.padding(padding))
         }
     }
 }
