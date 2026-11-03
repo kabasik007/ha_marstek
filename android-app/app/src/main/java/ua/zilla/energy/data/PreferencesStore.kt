@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import org.json.JSONArray
 import org.json.JSONObject
 import ua.zilla.energy.model.AppSettings
@@ -33,7 +34,7 @@ class PreferencesStore(private val context: Context) {
             pollSeconds = (prefs[intervalKey] ?: 30).coerceIn(15, 300),
             cameras = decodeCameras(prefs[camerasKey] ?: "[]")
         )
-    }
+    }.distinctUntilChanged()
 
     val events: Flow<List<EnergyEvent>> = context.preferences.data.map {
         decodeEvents(it[eventsKey] ?: "[]")
