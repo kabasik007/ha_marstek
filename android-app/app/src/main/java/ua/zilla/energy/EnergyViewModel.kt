@@ -17,6 +17,7 @@ import ua.zilla.energy.data.ConnectionTracker
 import ua.zilla.energy.data.DemoEnergy
 import ua.zilla.energy.data.LocalAddress
 import ua.zilla.energy.data.MarstekUdpClient
+import ua.zilla.energy.data.MarstekDeviceChanged
 import ua.zilla.energy.data.PreferencesStore
 import ua.zilla.energy.model.AppSettings
 import ua.zilla.energy.model.ConnectionStatus
@@ -26,6 +27,7 @@ import ua.zilla.energy.model.EnergySnapshot
 import ua.zilla.energy.model.EnergyUiState
 import ua.zilla.energy.model.EventKind
 import ua.zilla.energy.model.PowerPoint
+import ua.zilla.energy.model.EnergyMode
 
 class EnergyViewModel(application: Application) : AndroidViewModel(application) {
     private val store = PreferencesStore(application)
@@ -56,7 +58,8 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
                 connection = ConnectionStatus.DEMO,
                 snapshot = DemoEnergy.snapshot(),
                 history = DemoEnergy.history(),
-                error = null, consecutiveMisses = 0
+                error = null, consecutiveMisses = 0, wifi = null,
+                advancedLastCheckedMs = null, lastSuccessMs = null
             )
             while (kotlin.coroutines.coroutineContext.isActive) {
                 delay(5_000)
@@ -70,17 +73,24 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
         if (!LocalAddress.valid(settings.host)) {
             mutable.value = mutable.value.copy(
                 connection = ConnectionStatus.DISABLED,
-                history = emptyList(), error = "Enter a private LAN IPv4 address in Settings"
+                snapshot = EnergySnapshot(source = DataSource.LOCAL_API),
+                history = emptyList(), wifi = null, lastSuccessMs = null,
+                error = "Enter a private LAN IPv4 address in Settings"
             )
             return
         }
 
         val tracker = ConnectionTracker(offlineAfter = 3)
+        var lastAdvancedAtMs = 0L
         mutable.value = mutable.value.copy(
             connection = ConnectionStatus.CONNECTING,
             snapshot = EnergySnapshot(source = DataSource.LOCAL_API),
             history = emptyList(),
             consecutiveMisses = 0,
+            wifi = null,
+            lastSuccessMs = null,
+            advancedLastCheckedMs = null,
+            lastRoundTripMs = null,
             error = null
         )
         while (kotlin.coroutines.coroutineContext.isActive) {
@@ -105,10 +115,40 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
                     consecutiveMisses = 0,
                     error = null,
                     lastRoundTripMs = System.currentTimeMillis() - start,
+                    lastSuccessMs = snap.timestampMs,
                     history = (oldHistory + sample).takeLast(144)
                 )
+                // Additional queries are opt-in and limited to one burst/5min.
+                // A failed Wi-Fi/mode query must not make ES status look offline.
+                val nowMs = System.currentTimeMillis()
+                if (settings.advancedDiagnostics &&
+                    (lastAdvancedAtMs == 0L || nowMs - lastAdvancedAtMs >= 300_000L)) {
+                    lastAdvancedAtMs = nowMs
+                    val advanced = api.readAdvanced(settings.host, settings.port)
+                    val current = mutable.value
+                    mutable.value = current.copy(
+                        wifi = advanced.wifi ?: current.wifi,
+                        advancedLastCheckedMs = nowMs,
+                        snapshot = if (advanced.mode != EnergyMode.UNKNOWN)
+                            current.snapshot.copy(mode = advanced.mode)
+                        else current.snapshot
+                    )
+                    if (advanced.wifiError != null || advanced.modeError != null) {
+                        addEvent(EventKind.INFO, "Advanced readings incomplete",
+                            "Wi-Fi: " + (advanced.wifiError ?: "ok") +
+                            "; mode: " + (advanced.modeError ?: "ok"))
+                    }
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (identity: MarstekDeviceChanged) {
+                addEvent(EventKind.ERROR, "Device identity changed",
+                    "A different device responded at the same IP. Verify DHCP reservation.")
+                mutable.value = mutable.value.copy(
+                    connection = ConnectionStatus.DISABLED,
+                    error = "Different Marstek device detected — check IP reservation"
+                )
+                return
             } catch (error: Exception) {
                 val transition = tracker.observe(false, System.currentTimeMillis())
                 if (transition?.status == ConnectionStatus.OFFLINE) {
@@ -140,6 +180,10 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setDemo(enabled: Boolean) = viewModelScope.launch { store.setDemo(enabled) }
+
+    fun setAdvancedDiagnostics(enabled: Boolean) = viewModelScope.launch {
+        store.setAdvancedDiagnostics(enabled)
+    }
 
     fun setPollSeconds(seconds: Int) = viewModelScope.launch {
         store.setPollSeconds(seconds)
