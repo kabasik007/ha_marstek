@@ -23,6 +23,7 @@ class PreferencesStore(private val context: Context) {
     private val hostKey = stringPreferencesKey("host")
     private val portKey = intPreferencesKey("port")
     private val intervalKey = intPreferencesKey("poll_seconds")
+    private val advancedKey = booleanPreferencesKey("advanced_diagnostics")
     private val camerasKey = stringPreferencesKey("cameras_json")
     private val eventsKey = stringPreferencesKey("events_json")
 
@@ -32,6 +33,7 @@ class PreferencesStore(private val context: Context) {
             host = prefs[hostKey] ?: "",
             port = prefs[portKey] ?: 30000,
             pollSeconds = (prefs[intervalKey] ?: 30).coerceIn(15, 300),
+            advancedDiagnostics = prefs[advancedKey] ?: false,
             cameras = decodeCameras(prefs[camerasKey] ?: "[]")
         )
     }.distinctUntilChanged()
@@ -51,6 +53,10 @@ class PreferencesStore(private val context: Context) {
 
     suspend fun setDemo(enabled: Boolean) {
         context.preferences.edit { it[demoKey] = enabled }
+    }
+
+    suspend fun setAdvancedDiagnostics(enabled: Boolean) {
+        context.preferences.edit { it[advancedKey] = enabled }
     }
 
     suspend fun setPollSeconds(seconds: Int) {
