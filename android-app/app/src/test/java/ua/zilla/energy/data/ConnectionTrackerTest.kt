@@ -23,7 +23,7 @@ class ConnectionTrackerTest {
         tracker.observe(false, 90_000)
         val recovered = tracker.observe(true, 120_000)
         assertEquals(ConnectionStatus.ONLINE, recovered?.status)
-        assertEquals(90, recovered?.seconds)
+        assertEquals(90L, recovered?.seconds)
         assertEquals(0, tracker.misses)
         assertNull(tracker.observe(true, 121_000))
     }
