@@ -49,6 +49,29 @@ fun DiagnosticsScreen(state: EnergyUiState, onClear: () -> Unit, modifier: Modif
                 Metric("Device IP", state.settings.host.ifBlank { "Not set" }, Modifier.weight(1f))
             }
         }
+        MintCard {
+            SectionHeading("Marstek Wi-Fi", "Device-reported network information")
+            if (!state.settings.advancedDiagnostics) {
+                Text("Advanced diagnostics are disabled. Enable them in Settings to read Wi-Fi signal and operating mode at most once every 5 minutes.",
+                    color = Mint.muted, style = MaterialTheme.typography.bodySmall)
+            } else if (state.wifi == null) {
+                Text("Waiting for Wifi.GetStatus. Firmware may not support this request.",
+                    color = Mint.muted, style = MaterialTheme.typography.bodySmall)
+            } else {
+                val wifi = state.wifi
+                Row {
+                    Metric("Signal", wifi.rssiDbm?.let { "$it dBm" } ?: "—", Modifier.weight(1f))
+                    Metric("SSID", wifi.ssid ?: "—", Modifier.weight(1f))
+                }
+                Row {
+                    Metric("Device IP", wifi.deviceIp ?: "—", Modifier.weight(1f))
+                    Metric("Mode", state.snapshot.mode.name, Modifier.weight(1f))
+                }
+                Text("Wi-Fi sample: " + clockTime(wifi.recordedAtMs) +
+                    ". Signal is measured by Marstek, not by the phone.",
+                    color = Mint.muted, style = MaterialTheme.typography.labelSmall)
+            }
+        }
         Surface(shape = MaterialTheme.shapes.medium, color = Color(0xFFFFF4E8)) {
             Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
                 Icon(Icons.Default.Warning, null, tint = Mint.warning)
