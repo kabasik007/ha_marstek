@@ -45,4 +45,6 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.9.4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
+    // Real JSONObject implementation for local JVM protocol tests.
+    testImplementation("org.json:json:20240303")
 }
