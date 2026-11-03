@@ -23,6 +23,7 @@ fun SettingsScreen(
     onSave: (String, Int) -> Unit,
     onDemo: (Boolean) -> Unit,
     onInterval: (Int) -> Unit,
+    onAdvanced: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var ip by remember(state.settings.host) { mutableStateOf(state.settings.host) }
@@ -83,6 +84,17 @@ fun SettingsScreen(
             }
             Text("30–60 seconds recommended when investigating instability. Only ES.GetStatus is requested automatically.",
                 color = Mint.muted, style = MaterialTheme.typography.bodySmall)
+        }
+        MintCard {
+            Text("Marstek Wi-Fi + operating mode diagnostics", style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Enable extra read-only queries")
+                    Text("Opt in to Wifi.GetStatus and ES.GetMode at most once every 5 minutes. May not work on all firmware versions.",
+                        color = Mint.muted, style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(checked = state.settings.advancedDiagnostics, onCheckedChange = onAdvanced)
+            }
         }
         MintCard {
             Text("Security", style = MaterialTheme.typography.titleMedium)
