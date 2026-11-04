@@ -110,4 +110,22 @@
     <string name="share_json_chooser">Поділитися звітом API</string>
     <string name="raw_masked">Невідомі поля приховано</string>
     <string name="na_value">—</string>
+    <string name="nav_bms">BMS</string>
+    <string name="bms_title">Батарея / BMS</string>
+    <string name="bms_ethernet_hint">Підключіть Venus E 3.0 кабелем Ethernet. Телефон може залишитися на Wi-Fi.</string>
+    <string name="bms_host">IP дротового підключення</string>
+    <string name="bms_port">Modbus TCP · Порт 502 · ID 1</string>
+    <string name="bms_test">Перевірити з\'єднання</string>
+    <string name="bms_failed">Modbus не відповідає. Перевірте IP Ethernet і порт 502.</string>
+    <string name="bms_battery">Показники батареї</string>
+    <string name="bms_voltage">Напруга</string>
+    <string name="bms_current">Струм</string>
+    <string name="bms_voltage_unexpected">Незвична напруга. Перевірте модель перед читанням комірок.</string>
+    <string name="bms_cells">Комірки · 16</string>
+    <string name="bms_cells_warning">Лише ручний запит. Регістри комірок на V150 ще тестуємо.</string>
+    <string name="bms_read_cells">Зчитати комірки один раз</string>
+    <string name="bms_min">Мінімум</string>
+    <string name="bms_max">Максимум</string>
+    <string name="bms_delta">Різниця</string>
+    <string name="bms_readonly_note">Лише читання · Без фонового опитування BMS · Без команд керування</string>
 </resources>
