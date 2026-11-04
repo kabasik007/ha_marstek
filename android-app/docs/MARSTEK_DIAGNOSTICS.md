@@ -64,3 +64,11 @@ separately and only when advanced diagnostics are enabled.
   in its example. The repository includes a Rev 3.1.2 PDF. Model/firmware
   compatibility must be verified on a real Marstek device before any claims
   of complete support.
+
+## Raw API JSON (version 0.3)
+
+Open Diagnostics -> **Raw API** -> **Show JSON**. This displays only the
+latest *redacted* `ES.GetStatus` result. `bat_power` may be absent or null
+on some models/firmware: neither is evidence of a measurement of 0 W.
+Use Copy/Share to provide a sanitized response for comparing schema fields.
+The app does not send any additional command to inspect raw JSON.
