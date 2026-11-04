@@ -12,25 +12,32 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import ua.zilla.energy.model.HistoryWindow
 import ua.zilla.energy.model.PowerPoint
 import ua.zilla.energy.ui.theme.Mint
 import kotlin.math.abs
 import kotlin.math.max
 
-/** Lightweight smooth line chart, drawn directly in Compose; no external chart SDK. */
+/**
+ * Time-correct plot: missing timestamps never become synthetic readings,
+ * and gaps longer than three buckets break the line.
+ */
 @Composable
-fun PowerChart(points: List<PowerPoint>, modifier: Modifier = Modifier) {
-    val shown = points.takeLast(72)
+fun PowerChart(points: List<PowerPoint>, window: HistoryWindow, modifier: Modifier = Modifier) {
+    val shown = points
     val battery = shown.mapNotNull { it.batteryW }
     val grid = shown.mapNotNull { it.gridW }
     val solar = shown.mapNotNull { it.solarW }
     val all = battery + grid + solar
     val limit = max(500.0, (all.maxOfOrNull { abs(it) } ?: 1000.0) * 1.25)
+    val latestMs = System.currentTimeMillis()
+    val startMs = latestMs - window.durationMs
+
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Power history", style = MaterialTheme.typography.titleMedium)
         if (shown.size < 2) {
             Box(Modifier.fillMaxWidth().height(170.dp)) {
-                Text("Collecting readings…", color = Mint.muted)
+                Text("Not enough recorded readings in this period", color = Mint.muted)
             }
         } else {
             Canvas(Modifier.fillMaxWidth().height(180.dp)) {
@@ -49,27 +56,36 @@ fun PowerChart(points: List<PowerPoint>, modifier: Modifier = Modifier) {
 
                 fun drawSeries(values: List<Double?>, color: Color) {
                     if (values.count { it != null } < 2) return
-                    var part = mutableListOf<Offset>()
-                    fun drawPart() {
-                        if (part.size < 2) { part.clear(); return }
-                        val path = Path().apply { moveTo(part.first().x, part.first().y) }
-                        for (i in 1 until part.size) {
-                            val p = part[i - 1]
-                            val q = part[i]
-                            val midX = (p.x + q.x) / 2f
-                            path.cubicTo(midX, p.y, midX, q.y, q.x, q.y)
+                    val part = mutableListOf<Offset>()
+
+                    fun flush() {
+                        if (part.size >= 2) {
+                            val path = Path().apply { moveTo(part.first().x, part.first().y) }
+                            for (i in 1 until part.size) {
+                                val p = part[i - 1]
+                                val q = part[i]
+                                val midX = (p.x + q.x) / 2f
+                                path.cubicTo(midX, p.y, midX, q.y, q.x, q.y)
+                            }
+                            drawPath(path, color, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
                         }
-                        drawPath(path, color = color, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
                         part.clear()
                     }
+
+                    var lastStamp: Long? = null
                     values.forEachIndexed { i, value ->
-                        if (value == null) drawPart() else {
-                            val x = i * (size.width / (shown.size - 1))
-                            part.add(Offset(x, yOf(value)))
-                        }
+                        val sample = shown[i]
+                        if (lastStamp != null && sample.timestampMs - lastStamp!! >
+                            window.bucketMs * 3L) flush()
+                        val ratio = ((sample.timestampMs - startMs).toDouble() /
+                            window.durationMs).coerceIn(0.0, 1.0)
+                        if (value == null) flush()
+                        else part.add(Offset((ratio * size.width).toFloat(), yOf(value)))
+                        lastStamp = sample.timestampMs
                     }
-                    drawPart()
+                    flush()
                 }
+
                 drawSeries(shown.map { it.solarW }, Mint.leaf)
                 drawSeries(shown.map { it.gridW }, Mint.blue)
                 drawSeries(shown.map { it.batteryW }, Mint.primary)
@@ -80,5 +96,7 @@ fun PowerChart(points: List<PowerPoint>, modifier: Modifier = Modifier) {
             DotLabel("Grid", Mint.blue)
             DotLabel("Battery", Mint.primary)
         }
+        Text("Bucket averages • no interpolation during missing measurements",
+            color = Mint.muted, style = MaterialTheme.typography.labelSmall)
     }
 }
