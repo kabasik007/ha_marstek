@@ -53,7 +53,7 @@ fun DiagnosticsScreen(state: EnergyUiState, onClear: () -> Unit, modifier: Modif
             SectionHeading("API reliability • last 24 hours", "Observed UDP polls; not inverter uptime")
             val stats = state.probeStats
             Row {
-                Metric("Responded", stats.reachabilityPercent?.let { "$" + "{it}%" } ?: "—",
+                Metric("Responded", stats.reachabilityPercent?.let { it.toString() + "%" } ?: "—",
                     Modifier.weight(1f), Mint.primary)
                 Metric("Samples", stats.attempts.toString(), Modifier.weight(1f))
             }
