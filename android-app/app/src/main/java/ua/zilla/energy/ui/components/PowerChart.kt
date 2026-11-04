@@ -6,6 +6,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import ua.zilla.energy.R
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -34,10 +36,10 @@ fun PowerChart(points: List<PowerPoint>, window: HistoryWindow, modifier: Modifi
     val startMs = latestMs - window.durationMs
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Power history", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.chart_title), style = MaterialTheme.typography.titleMedium)
         if (shown.size < 2) {
             Box(Modifier.fillMaxWidth().height(170.dp)) {
-                Text("Not enough recorded readings in this period", color = Mint.muted)
+                Text(stringResource(R.string.chart_empty), color = Mint.muted)
             }
         } else {
             Canvas(Modifier.fillMaxWidth().height(180.dp)) {
@@ -92,11 +94,9 @@ fun PowerChart(points: List<PowerPoint>, window: HistoryWindow, modifier: Modifi
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            DotLabel("Solar", Mint.leaf)
-            DotLabel("Grid", Mint.blue)
-            DotLabel("Battery", Mint.primary)
+            DotLabel(stringResource(R.string.solar), Mint.leaf)
+            DotLabel(stringResource(R.string.grid), Mint.blue)
+            DotLabel(stringResource(R.string.battery), Mint.primary)
         }
-        Text("Bucket averages • no interpolation during missing measurements",
-            color = Mint.muted, style = MaterialTheme.typography.labelSmall)
     }
 }
