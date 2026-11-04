@@ -44,9 +44,6 @@ jobs:
           gradle-version: '8.13'
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
-      - name: Configure Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android API 36
         run: |
           yes | sdkmanager --licenses >/dev/null || true
