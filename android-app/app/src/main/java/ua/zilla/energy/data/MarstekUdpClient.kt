@@ -54,7 +54,7 @@ class MarstekUdpClient(private val context: Context) {
         var wifiError: String? = null
         var modeError: String? = null
         try {
-            wifi = MarstekProtocol.parseWifi(request(host, port, "Wifi.GetStatus"))
+            wifi = MarstekProtocol.parseWifi(request(host, port, "wifi.GetStatus"))
         } catch (error: Exception) {
             if (error is MarstekDeviceChanged) throw error
             if (error is kotlinx.coroutines.CancellationException) throw error
