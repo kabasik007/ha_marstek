@@ -50,7 +50,8 @@ fun EnergyApp(vm: EnergyViewModel) {
             Tab.CAMERAS -> CamerasScreen(state, onAdd = vm::addCamera, onRemove = vm::removeCamera, Modifier.padding(padding))
             Tab.CONTROL -> ControlScreen(state, Modifier.padding(padding))
             Tab.SETTINGS -> SettingsScreen(state, vm::saveEndpoint, vm::setDemo, vm::setPollSeconds,
-                vm::setAdvancedDiagnostics, Modifier.padding(padding))
+                vm::setAdvancedDiagnostics, vm::discoverMarstek, vm::selectDiscoveredMarstek,
+                Modifier.padding(padding))
         }
     }
 }
