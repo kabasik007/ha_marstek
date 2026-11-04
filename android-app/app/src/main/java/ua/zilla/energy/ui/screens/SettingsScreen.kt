@@ -13,6 +13,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import ua.zilla.energy.data.LocalAddress
 import ua.zilla.energy.model.EnergyUiState
+import ua.zilla.energy.model.DiscoveredMarstek
 import ua.zilla.energy.ui.components.MintCard
 import ua.zilla.energy.ui.components.SectionHeading
 import ua.zilla.energy.ui.theme.Mint
@@ -24,12 +25,22 @@ fun SettingsScreen(
     onDemo: (Boolean) -> Unit,
     onInterval: (Int) -> Unit,
     onAdvanced: (Boolean) -> Unit,
+    onDiscover: () -> Unit,
+    onSelectDevice: (DiscoveredMarstek) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var ip by remember(state.settings.host) { mutableStateOf(state.settings.host) }
     var port by remember(state.settings.port) { mutableStateOf(state.settings.port.toString()) }
     val valid = LocalAddress.valid(ip.trim()) &&
         (port.toIntOrNull() ?: 0) in 1..65535
+
+    // On first setup, look for LAN Marstek devices once; subsequent scans are
+    // explicit. Discovery never applies a device selection automatically.
+    LaunchedEffect(state.settings.host) {
+        if (state.settings.host.isBlank() && !state.discoveryAttempted) {
+            onDiscover()
+        }
+    }
 
     Column(
         modifier.fillMaxSize().background(Mint.background)
@@ -51,6 +62,45 @@ fun SettingsScreen(
             Text("Marstek Local API", style = MaterialTheme.typography.titleMedium)
             Text("Enable Open API via Bluetooth inside the official Marstek app first.",
                 color = Mint.muted)
+            Button(
+                onClick = onDiscover,
+                enabled = !state.isDiscovering,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (state.isDiscovering) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(10.dp))
+                }
+                Text(if (state.isDiscovering) "Searching local Wi-Fi…" else "Find Marstek automatically")
+            }
+            if (state.discoveredDevices.isNotEmpty()) {
+                Text("Found devices — tap yours to connect:",
+                    style = MaterialTheme.typography.bodySmall, color = Mint.muted)
+                state.discoveredDevices.forEach { device ->
+                    OutlinedButton(
+                        onClick = { onSelectDevice(device) },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !state.isDiscovering
+                    ) {
+                        Column(Modifier.fillMaxWidth()) {
+                            Text(device.model, style = MaterialTheme.typography.titleSmall)
+                            Text(device.host + " : " + device.port +
+                                (if (device.firmware.isNotBlank()) " • v" + device.firmware else ""),
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+            if (state.discoveryError != null) {
+                Text(state.discoveryError, color = Mint.warning,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            Text("Automatic discovery requires Marstek Local API, the same Wi-Fi/LAN, and a router that allows UDP broadcasts. Manual IP entry remains available.",
+                color = Mint.muted, style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(
                 value = ip, onValueChange = { ip = it.trim() },
                 label = { Text("Device IP (private LAN)") },
