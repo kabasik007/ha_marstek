@@ -47,6 +47,25 @@ app/
               CamerasScreen.kt, ControlScreen.kt, SettingsScreen.kt
 ```
 
+## Experimental Venus E 3.0 Ethernet BMS (0.5.0)
+
+A new **BMS** tab provides an explicitly manual, read-only Modbus TCP test.
+Phone stays on Wi-Fi; Venus E 3.0 must be connected by native Ethernet LAN
+to the same router/switch. Wired DHCP IP can differ from the UDP Wi-Fi IP.
+
+- Tap **Test LAN connection**: Modbus TCP port 502, unit 1, FC03, reads pack
+  voltage/current (30100–30101) once.
+- After a plausible result, **Read cells once** requests cell voltages
+  (34018–34033); no automatic repeat or database history.
+- No Modbus writes or mode-control commands are implemented.
+- Cell and temperature register compatibility is community-sourced, not yet
+  verified on this specific firmware V150.
+- Temperature/cycle ranges are reserved but not exposed until manual tests
+  demonstrate stable behaviour.
+
+Read [safety and connection instructions](docs/VENUS_E3_MODBUS_READONLY.md).
+**Do not confuse the device's LAN socket with its RS485 connection.**
+
 ## Raw status diagnostics (0.3.0)
 
 Diagnostics now includes a **Raw API / ES.GetStatus** card with the fields
