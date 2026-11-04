@@ -47,6 +47,24 @@ app/
               CamerasScreen.kt, ControlScreen.kt, SettingsScreen.kt
 ```
 
+## Automatic LAN discovery (0.2.0)
+
+Settings runs a short, bounded discovery automatically when there is no
+configured device IP. Use **Find Marstek automatically** to scan again.
+
+- First, set up the Marstek home Wi-Fi connection and enable its Local API
+  in the official Marstek app over Bluetooth.
+- The phone and station must be on the same LAN. Internet is not required.
+- Uses the official read-only UDP broadcast Marstek.GetDevice with
+  params ble_mac = "0" to the Wi-Fi subnet broadcast address.
+- Lists the model, firmware version and discovered IP. You must tap
+  the device to save its address and switch from Demo into Live mode.
+- The scan never changes battery settings and never auto-selects an
+  unknown device. The app serializes it with regular UDP status polling.
+- Client-isolated Wi-Fi, blocked UDP broadcast, a different VLAN or a
+  nondefault port can prevent discovery. Manual IP entry remains available.
+- No hardware compatibility test has been performed yet.
+
 ## Connection contract and safety
 
 For a practical troubleshooting matrix see [Marstek LAN diagnostics](docs/MARSTEK_DIAGNOSTICS.md).
