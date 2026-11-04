@@ -101,10 +101,22 @@ data class AppSettings(
     val cameras: List<CameraDevice> = emptyList()
 )
 
+/** Manual-only read-only Modbus TCP test state. Not retained in app storage. */
+data class BmsProbeState(
+    val busy: Boolean = false,
+    val host: String? = null,
+    val voltageV: Double? = null,
+    val currentA: Double? = null,
+    val cellsV: List<Double> = emptyList(),
+    val errorType: String? = null,
+    val lastReadMs: Long? = null
+)
+
 data class EnergyUiState(
     val settings: AppSettings = AppSettings(),
     val snapshot: EnergySnapshot = EnergySnapshot(),
     val rawApiStatus: RawApiStatus? = null,
+    val bms: BmsProbeState = BmsProbeState(),
     val connection: ConnectionStatus = ConnectionStatus.DEMO,
     val events: List<EnergyEvent> = emptyList(),
     val history: List<PowerPoint> = emptyList(),
