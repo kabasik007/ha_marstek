@@ -64,5 +64,5 @@ class EnergyHistoryRepository(context: Context) {
 }
 
 enum class ProbeResult(val dbCode: String) {
-    OK("ok"), TIMEOUT("timeout"), PHONE_WIFI_UNAVAILABLE("phone_wifi")
+    OK("ok"), TIMEOUT("timeout"), API_ERROR("api_error"), PHONE_WIFI_UNAVAILABLE("phone_wifi")
 }
