@@ -110,4 +110,22 @@
     <string name="share_json_chooser">Share API report</string>
     <string name="raw_masked">Unknown fields are hidden</string>
     <string name="na_value">—</string>
+    <string name="nav_bms">BMS</string>
+    <string name="bms_title">Battery / BMS</string>
+    <string name="bms_ethernet_hint">Connect Venus E 3.0 via Ethernet. Your phone can stay on Wi-Fi.</string>
+    <string name="bms_host">Wired device IP</string>
+    <string name="bms_port">Modbus TCP · Port 502 · Unit 1</string>
+    <string name="bms_test">Test LAN connection</string>
+    <string name="bms_failed">Could not read Modbus. Check the Ethernet IP and port 502.</string>
+    <string name="bms_battery">Battery measurements</string>
+    <string name="bms_voltage">Voltage</string>
+    <string name="bms_current">Current</string>
+    <string name="bms_voltage_unexpected">Unexpected voltage. Check device model before reading cells.</string>
+    <string name="bms_cells">Cells · 16</string>
+    <string name="bms_cells_warning">Manual read only. Cell registers are experimental on V150.</string>
+    <string name="bms_read_cells">Read cells once</string>
+    <string name="bms_min">Minimum</string>
+    <string name="bms_max">Maximum</string>
+    <string name="bms_delta">Difference</string>
+    <string name="bms_readonly_note">Read only · No automatic BMS polling · No control commands</string>
 </resources>
