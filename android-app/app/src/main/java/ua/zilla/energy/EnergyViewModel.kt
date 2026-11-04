@@ -22,10 +22,12 @@ import ua.zilla.energy.data.MarstekUdpClient
 import ua.zilla.energy.data.MarstekDeviceChanged
 import ua.zilla.energy.data.PhoneWifiUnavailableException
 import ua.zilla.energy.data.PhoneNetworkInspector
+import ua.zilla.energy.data.modbus.MarstekModbusReader
 import ua.zilla.energy.data.PreferencesStore
 import ua.zilla.energy.data.history.EnergyHistoryRepository
 import ua.zilla.energy.data.history.ProbeResult
 import ua.zilla.energy.model.AppSettings
+import ua.zilla.energy.model.BmsProbeState
 import ua.zilla.energy.model.ConnectionStatus
 import ua.zilla.energy.model.DataSource
 import ua.zilla.energy.model.EnergyEvent
@@ -45,6 +47,7 @@ import ua.zilla.energy.model.ProbeStats
 class EnergyViewModel(application: Application) : AndroidViewModel(application) {
     private val store = PreferencesStore(application)
     private val api = MarstekUdpClient(application)
+    private val bmsReader = MarstekModbusReader(application)
     private val archive = EnergyHistoryRepository(application)
     private val mutable = MutableStateFlow(EnergyUiState())
     val ui: StateFlow<EnergyUiState> = mutable.asStateFlow()
@@ -314,6 +317,65 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
 
     private suspend fun addEvent(kind: EventKind, title: String, detail: String) {
         store.addEvent(EnergyEvent(kind = kind, title = title, detail = detail))
+    }
+
+    /**
+     * Manual-only Modbus TCP on native Ethernet Venus E3 port 502.
+     * A successful basic read is required before exposing the 16-cell button.
+     * Neither method changes the device or schedules background reads.
+     */
+    fun probeBmsBasics(host: String) {
+        if (mutable.value.bms.busy || !LocalAddress.valid(host)) return
+        viewModelScope.launch {
+            mutable.value = mutable.value.copy(
+                bms = BmsProbeState(busy = true, host = host)
+            )
+            try {
+                val value = bmsReader.batteryBasics(host)
+                mutable.value = mutable.value.copy(
+                    bms = BmsProbeState(
+                        host = host,
+                        voltageV = value.voltageV,
+                        currentA = value.currentA,
+                        lastReadMs = System.currentTimeMillis()
+                    )
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutable.value = mutable.value.copy(
+                    bms = BmsProbeState(host = host, errorType = error.javaClass.simpleName)
+                )
+            }
+        }
+    }
+
+    fun probeCellsOnce(host: String) {
+        val state = mutable.value.bms
+        if (state.busy || state.host != host || state.voltageV == null ||
+            !LocalAddress.valid(host)) return
+        viewModelScope.launch {
+            mutable.value = mutable.value.copy(bms = state.copy(busy = true, errorType = null))
+            try {
+                val reading = bmsReader.cellsOnce(host)
+                // The first successful basic read remains visible along with cells.
+                mutable.value = mutable.value.copy(
+                    bms = mutable.value.bms.copy(
+                        busy = false, cellsV = reading.voltagesV,
+                        lastReadMs = System.currentTimeMillis()
+                    )
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutable.value = mutable.value.copy(
+                    bms = mutable.value.bms.copy(
+                        busy = false, cellsV = emptyList(),
+                        errorType = error.javaClass.simpleName
+                    )
+                )
+            }
+        }
     }
 
     fun saveEndpoint(ip: String, port: Int) = viewModelScope.launch {
