@@ -99,7 +99,7 @@ class MarstekUdpClient(private val context: Context) {
             manager.getNetworkCapabilities(network)?.hasTransport(
                 NetworkCapabilities.TRANSPORT_WIFI
             ) == true
-        } ?: throw IllegalStateException("Wi-Fi LAN not available")
+        } ?: throw PhoneWifiUnavailableException()
 
         val target = InetAddress.getByName(host)
         try {
@@ -144,3 +144,6 @@ class MarstekUdpClient(private val context: Context) {
         }
     }
 }
+
+/** The phone itself has no Wi-Fi network; Marstek status is unknown. */
+class PhoneWifiUnavailableException : IllegalStateException("Phone Wi-Fi LAN unavailable")
