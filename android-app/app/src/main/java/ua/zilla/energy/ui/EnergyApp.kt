@@ -3,6 +3,7 @@ package ua.zilla.energy.ui
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Videocam
@@ -20,6 +21,7 @@ import ua.zilla.energy.ui.screens.*
 private enum class Tab(val titleRes: Int, val icon: ImageVector) {
     HOME(R.string.nav_home, Icons.Default.Home),
     HEALTH(R.string.nav_diagnostics, Icons.Default.Timeline),
+    BMS(R.string.nav_bms, Icons.Default.BatteryChargingFull),
     CAMERAS(R.string.nav_settings, Icons.Default.Videocam),
     CONTROL(R.string.nav_settings, Icons.Default.Tune),
     SETTINGS(R.string.nav_settings, Icons.Default.Settings)
@@ -33,7 +35,7 @@ fun EnergyApp(vm: EnergyViewModel) {
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 // Camera UI is intentionally parked while Marstek reliability is prioritized.
-                Tab.entries.filter { it in listOf(Tab.HOME, Tab.HEALTH, Tab.SETTINGS) }.forEach { item ->
+                Tab.entries.filter { it in listOf(Tab.HOME, Tab.BMS, Tab.HEALTH, Tab.SETTINGS) }.forEach { item ->
                     NavigationBarItem(
                         selected = tab == item,
                         onClick = { tab = item },
@@ -49,6 +51,8 @@ fun EnergyApp(vm: EnergyViewModel) {
             Tab.HOME -> DashboardScreen(state, onSettings = { tab = Tab.SETTINGS },
                 onWindow = vm::selectHistoryWindow, modifier = Modifier.padding(padding))
             Tab.HEALTH -> DiagnosticsScreen(state, onClear = vm::clearEvents, Modifier.padding(padding))
+            Tab.BMS -> BmsScreen(state, onBasicTest = vm::probeBmsBasics,
+                onCellsOnce = vm::probeCellsOnce, modifier = Modifier.padding(padding))
             Tab.CAMERAS -> CamerasScreen(state, onAdd = vm::addCamera, onRemove = vm::removeCamera, Modifier.padding(padding))
             Tab.CONTROL -> ControlScreen(state, Modifier.padding(padding))
             Tab.SETTINGS -> SettingsScreen(state, vm::saveEndpoint, vm::setDemo, vm::setPollSeconds,
