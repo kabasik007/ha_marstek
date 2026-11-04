@@ -21,6 +21,7 @@ import ua.zilla.energy.data.LocalAddress
 import ua.zilla.energy.data.MarstekUdpClient
 import ua.zilla.energy.data.MarstekDeviceChanged
 import ua.zilla.energy.data.PhoneWifiUnavailableException
+import ua.zilla.energy.data.PhoneNetworkInspector
 import ua.zilla.energy.data.PreferencesStore
 import ua.zilla.energy.data.history.EnergyHistoryRepository
 import ua.zilla.energy.data.history.ProbeResult
@@ -80,7 +81,9 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
                 wifi = null,
                 advancedLastCheckedMs = null,
                 lastSuccessMs = null,
-                lastRoundTripMs = null
+                lastRoundTripMs = null,
+                phoneWifiAvailable = null,
+                phoneInternetValidated = null
             )
             while (kotlin.coroutines.coroutineContext.isActive) {
                 delay(5_000)
@@ -99,6 +102,7 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
                 history = emptyList(),
                 probeStats = ProbeStats(),
                 wifi = null, lastSuccessMs = null, lastRoundTripMs = null,
+                phoneWifiAvailable = null, phoneInternetValidated = null,
                 error = "Enter a private LAN IPv4 address in Settings"
             )
             return
@@ -115,11 +119,24 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
             lastSuccessMs = null,
             advancedLastCheckedMs = null,
             lastRoundTripMs = null,
+            phoneWifiAvailable = null, phoneInternetValidated = null,
             error = null
         )
         refreshArchive(settings)
 
         while (kotlin.coroutines.coroutineContext.isActive) {
+            val lan = PhoneNetworkInspector.inspect(getApplication())
+            val previousValidation = mutable.value.phoneInternetValidated
+            mutable.value = mutable.value.copy(
+                phoneWifiAvailable = lan.hasWifiLan,
+                phoneInternetValidated = lan.internetValidated
+            )
+            if (lan.hasWifiLan && previousValidation != null &&
+                lan.internetValidated != null &&
+                previousValidation != lan.internetValidated) {
+                addEvent(EventKind.INFO, "Android internet validation changed",
+                    "Android changed its Wi-Fi validation state; local Marstek API may still work")
+            }
             val startMs = System.currentTimeMillis()
             try {
                 val snap = api.readStatus(settings.host, settings.port)
