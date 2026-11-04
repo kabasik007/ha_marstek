@@ -96,6 +96,8 @@ data class EnergyUiState(
     val lastRoundTripMs: Long? = null,
     val lastSuccessMs: Long? = null,
     val wifi: WifiDiagnostics? = null,
+    val phoneWifiAvailable: Boolean? = null,
+    val phoneInternetValidated: Boolean? = null,
     val advancedLastCheckedMs: Long? = null,
     val consecutiveMisses: Int = 0,
     val error: String? = null
