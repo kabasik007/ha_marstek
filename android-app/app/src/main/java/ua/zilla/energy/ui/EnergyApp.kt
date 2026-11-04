@@ -44,7 +44,8 @@ fun EnergyApp(vm: EnergyViewModel) {
         }
     ) { padding ->
         when (tab) {
-            Tab.HOME -> DashboardScreen(state, onSettings = { tab = Tab.SETTINGS }, Modifier.padding(padding))
+            Tab.HOME -> DashboardScreen(state, onSettings = { tab = Tab.SETTINGS },
+                onWindow = vm::selectHistoryWindow, modifier = Modifier.padding(padding))
             Tab.HEALTH -> DiagnosticsScreen(state, onClear = vm::clearEvents, Modifier.padding(padding))
             Tab.CAMERAS -> CamerasScreen(state, onAdd = vm::addCamera, onRemove = vm::removeCamera, Modifier.padding(padding))
             Tab.CONTROL -> ControlScreen(state, Modifier.padding(padding))
