@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import ua.zilla.energy.model.EnergyMode
 import ua.zilla.energy.model.EnergySnapshot
+import ua.zilla.energy.model.DiscoveredMarstek
 import ua.zilla.energy.model.WifiDiagnostics
 
 /**
@@ -31,6 +32,11 @@ class MarstekUdpClient(private val context: Context) {
     private var endpoint: String? = null
     private var deviceSource: String? = null
     private var lastRequestAtMs = 0L
+
+    /** Discovery and ordinary telemetry share one UDP-port mutex. */
+    suspend fun discover(port: Int = 30000): List<DiscoveredMarstek> = mutex.withLock {
+        MarstekDiscovery(context).search(port)
+    }
 
     suspend fun readStatus(host: String, port: Int): EnergySnapshot = mutex.withLock {
         val result = request(host, port, "ES.GetStatus")
