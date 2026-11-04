@@ -90,7 +90,7 @@ fun SettingsScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Enable extra read-only queries")
-                    Text("Opt in to Wifi.GetStatus and ES.GetMode at most once every 5 minutes. May not work on all firmware versions.",
+                    Text("Opt in to wifi.GetStatus and ES.GetMode at most once every 5 minutes. May not work on all firmware versions.",
                         color = Mint.muted, style = MaterialTheme.typography.bodySmall)
                 }
                 Switch(checked = state.settings.advancedDiagnostics, onCheckedChange = onAdvanced)
@@ -100,7 +100,7 @@ fun SettingsScreen(
             Text("Security", style = MaterialTheme.typography.titleMedium)
             Text("The Local API is unauthenticated UDP. Keep the device on a trusted Wi-Fi/VLAN. Do not forward UDP 30000 to the internet.",
                 color = Mint.muted)
-            Text("Camera URLs must be credential-free RTSP endpoints on private IPv4 hosts. No accounts or camera passwords are stored.",
+            Text("Real measurements and network probes are retained locally for up to 30 days. Data exports always require a Share action.",
                 color = Mint.muted)
         }
         if (state.error != null) {
