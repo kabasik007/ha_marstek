@@ -128,4 +128,7 @@
     <string name="bms_max">Максимум</string>
     <string name="bms_delta">Різниця</string>
     <string name="bms_readonly_note">Лише читання · Без фонового опитування BMS · Без команд керування</string>
+    <string name="grid_import">Із мережі ↓</string>
+    <string name="grid_export">У мережу ↑</string>
+    <string name="grid_idle">Мережа</string>
 </resources>
