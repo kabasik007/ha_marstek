@@ -21,6 +21,14 @@ data class EnergySnapshot(
 )
 
 /** Read-only Wifi.GetStatus; no MAC, gateway or DNS are stored. */
+/** Discovery result deliberately excludes BLE/Wi-Fi MAC identifiers. */
+data class DiscoveredMarstek(
+    val host: String,
+    val port: Int,
+    val model: String,
+    val firmware: String
+)
+
 data class WifiDiagnostics(
     val recordedAtMs: Long = System.currentTimeMillis(),
     val ssid: String? = null,
@@ -93,6 +101,10 @@ data class EnergyUiState(
     val historyWindow: HistoryWindow = HistoryWindow.DAY,
     val probeStats: ProbeStats = ProbeStats(),
     val historyError: String? = null,
+    val isDiscovering: Boolean = false,
+    val discoveryAttempted: Boolean = false,
+    val discoveredDevices: List<DiscoveredMarstek> = emptyList(),
+    val discoveryError: String? = null,
     val lastRoundTripMs: Long? = null,
     val lastSuccessMs: Long? = null,
     val wifi: WifiDiagnostics? = null,
