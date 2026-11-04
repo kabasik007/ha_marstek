@@ -71,6 +71,15 @@ jobs:
           if not methods or not methods <= allowed or broadcast != {"Marstek.GetDevice"}:
               raise SystemExit(f"Unexpected methods: {methods - allowed}; discovery={broadcast}")
           print("Discovery commands:", sorted(broadcast))
+          codec = (root / "data/modbus/ModbusTcpCodec.kt").read_text()
+          reader = (root / "data/modbus/MarstekModbusReader.kt").read_text()
+          if "3,           // FC03" not in codec:
+              raise SystemExit("Modbus is not visibly restricted to read FC03")
+          if "42000" in codec or "43000" in codec:
+              raise SystemExit("Modbus control register must not be read/written")
+          if "socket.getOutputStream().write(request)" not in reader:
+              raise SystemExit("Modbus transport changed; review required")
+          print("Modbus: one-shot read FC03, no setting writes")
           PY
 
       - name: Run Kotlin unit tests
