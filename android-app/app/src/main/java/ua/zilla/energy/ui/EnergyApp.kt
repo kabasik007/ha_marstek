@@ -10,17 +10,19 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import ua.zilla.energy.R
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ua.zilla.energy.EnergyViewModel
 import ua.zilla.energy.ui.screens.*
 
-private enum class Tab(val title: String, val icon: ImageVector) {
-    HOME("Home", Icons.Default.Home),
-    HEALTH("Diagnostics", Icons.Default.Timeline),
-    CAMERAS("Cameras", Icons.Default.Videocam),
-    CONTROL("Control", Icons.Default.Tune),
-    SETTINGS("Settings", Icons.Default.Settings)
+private enum class Tab(val titleRes: Int, val icon: ImageVector) {
+    HOME(R.string.nav_home, Icons.Default.Home),
+    HEALTH(R.string.nav_diagnostics, Icons.Default.Timeline),
+    CAMERAS(R.string.nav_settings, Icons.Default.Videocam),
+    CONTROL(R.string.nav_settings, Icons.Default.Tune),
+    SETTINGS(R.string.nav_settings, Icons.Default.Settings)
 }
 
 @Composable
@@ -31,13 +33,13 @@ fun EnergyApp(vm: EnergyViewModel) {
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 // Camera UI is intentionally parked while Marstek reliability is prioritized.
-                Tab.entries.filter { it != Tab.CAMERAS }.forEach { item ->
+                Tab.entries.filter { it in listOf(Tab.HOME, Tab.HEALTH, Tab.SETTINGS) }.forEach { item ->
                     NavigationBarItem(
                         selected = tab == item,
                         onClick = { tab = item },
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title, maxLines = 1) },
-                        alwaysShowLabel = false
+                        icon = { Icon(item.icon, contentDescription = stringResource(item.titleRes)) },
+                        label = { Text(stringResource(item.titleRes), maxLines = 1) },
+                        alwaysShowLabel = true
                     )
                 }
             }
