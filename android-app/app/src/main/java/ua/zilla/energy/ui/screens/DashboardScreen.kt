@@ -22,6 +22,8 @@ import ua.zilla.energy.R
 import ua.zilla.energy.model.ConnectionStatus
 import ua.zilla.energy.model.EnergyUiState
 import ua.zilla.energy.model.HistoryWindow
+import ua.zilla.energy.model.GridFlow
+import ua.zilla.energy.model.GridDirection
 import ua.zilla.energy.ui.components.*
 import ua.zilla.energy.ui.theme.Mint
 import java.text.SimpleDateFormat
@@ -37,6 +39,7 @@ fun DashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val snap = state.snapshot
+    val gridFlow = GridFlow.fromRaw(snap.gridPowerW)
     val context = LocalContext.current
     val exportChooser = stringResource(R.string.chart_export_chooser)
 
@@ -126,8 +129,17 @@ fun DashboardScreen(
             Row {
                 Metric(stringResource(R.string.battery), watts(snap.batteryPowerW),
                     Modifier.weight(1f), Mint.primary)
-                Metric(stringResource(R.string.grid), watts(snap.gridPowerW),
-                    Modifier.weight(1f), Mint.blue)
+                Metric(
+                    label = stringResource(when (gridFlow.direction) {
+                        GridDirection.IMPORT -> R.string.grid_import
+                        GridDirection.EXPORT -> R.string.grid_export
+                        GridDirection.IDLE -> R.string.grid_idle
+                        GridDirection.UNKNOWN -> R.string.grid
+                    }),
+                    value = watts(gridFlow.magnitudeW),
+                    modifier = Modifier.weight(1f),
+                    color = Mint.blue
+                )
             }
             HorizontalDivider(color = Mint.subtle)
             Row {
