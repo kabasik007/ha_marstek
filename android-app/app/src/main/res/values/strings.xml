@@ -128,4 +128,7 @@
     <string name="bms_max">Maximum</string>
     <string name="bms_delta">Difference</string>
     <string name="bms_readonly_note">Read only · No automatic BMS polling · No control commands</string>
+    <string name="grid_import">From grid ↓</string>
+    <string name="grid_export">To grid ↑</string>
+    <string name="grid_idle">Grid</string>
 </resources>
