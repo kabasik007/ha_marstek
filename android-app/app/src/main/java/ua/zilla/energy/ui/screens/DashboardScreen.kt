@@ -1,5 +1,7 @@
 package ua.zilla.energy.ui.screens
 
+import android.content.Intent
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -7,11 +9,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -20,6 +24,10 @@ import ua.zilla.energy.model.EnergyUiState
 import ua.zilla.energy.model.HistoryWindow
 import ua.zilla.energy.ui.components.*
 import ua.zilla.energy.ui.theme.Mint
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 fun DashboardScreen(
@@ -29,6 +37,7 @@ fun DashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val snap = state.snapshot
+    val context = LocalContext.current
     Column(
         modifier.fillMaxSize().background(Mint.background)
             .verticalScroll(rememberScrollState()).padding(18.dp),
@@ -130,6 +139,37 @@ fun DashboardScreen(
                 }
             }
             PowerChart(state.history, state.historyWindow)
+            OutlinedButton(
+                enabled = !state.settings.demoMode && state.history.isNotEmpty(),
+                onClick = {
+                    val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+                    formatter.timeZone = TimeZone.getTimeZone("UTC")
+                    val csv = buildString {
+                        appendLine("timestamp_utc,battery_W,grid_W,solar_W")
+                        state.history.forEach { point ->
+                            fun value(v: Double?): String = v?.let {
+                                String.format(Locale.US, "%.3f", it)
+                            } ?: ""
+                            appendLine(
+                                formatter.format(Date(point.timestampMs)) + "," +
+                                    value(point.batteryW) + "," + value(point.gridW) + "," +
+                                    value(point.solarW)
+                            )
+                        }
+                    }
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/csv"
+                        putExtra(Intent.EXTRA_TEXT, csv)
+                        putExtra(Intent.EXTRA_SUBJECT, "Marstek chart " + state.historyWindow.label)
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Share chart CSV"))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Share chart CSV")
+            }
             Text(
                 if (state.settings.demoMode) "Simulated demo history"
                 else "Saved locally for up to 30 days. Logging requires the app to be running.",
