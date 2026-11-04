@@ -4,6 +4,15 @@
 
 A [Home Assistant](https://www.home-assistant.io) integration for [Marstek Energy](https://de.marstekenergy.com) devices (Venus series), communicating locally over the [Marstek Device Local API](<docs/Marstek Device Local API_EN (Rev3.1.2).pdf>).
 
+## Zilla Energy Android app (source-only prototype)
+
+A separate Kotlin/Jetpack Compose mobile client is now developed under
+[android-app/](android-app/). It includes a mint-green energy dashboard,
+local read-only UDP polling, an incident timeline, and credential-free private
+LAN RTSP camera viewing. **Not built or tested on real hardware yet.** See
+[Android setup and safety notes](android-app/README.md). Existing Home
+Assistant integration behavior is unchanged by the Android subproject.
+
 ## Supported devices
 
 - Venus E / Venus E 3.0 (VNSE3-0)
