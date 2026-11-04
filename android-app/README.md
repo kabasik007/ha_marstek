@@ -47,6 +47,22 @@ app/
               CamerasScreen.kt, ControlScreen.kt, SettingsScreen.kt
 ```
 
+## Raw status diagnostics (0.3.0)
+
+Diagnostics now includes a **Raw API / ES.GetStatus** card with the fields
+from the *same* successful polling reply used by the dashboard. This adds no
+requests and cannot write to the inverter. Tap **Show JSON**, **Copy** or
+**Share** to inspect a redacted status response. The source MAC/UDP envelope
+is never exposed. Only documented electrical numeric fields are shown
+verbatim; unknown fields and unexpected strings are masked. This temporary
+snapshot stays in memory and is cleared upon switching to Demo/another
+endpoint; it is **not** stored in Room/DataStore, telemetry logs, or cloud.
+
+The list distinguishes `bat_power` being absent, present as JSON `null`,
+and present as a valid watt value. The Rev 3.1.2 documentation explicitly
+allows the field to be `null` and the official example omits it, so the
+UI correctly displays `—` rather than inventing zero watts.
+
 ## Automatic LAN discovery (0.2.0)
 
 Settings runs a short, bounded discovery automatically when there is no
