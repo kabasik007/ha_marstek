@@ -30,6 +30,7 @@ import ua.zilla.energy.model.ConnectionStatus
 import ua.zilla.energy.model.DataSource
 import ua.zilla.energy.model.EnergyEvent
 import ua.zilla.energy.model.EnergySnapshot
+import ua.zilla.energy.model.DiscoveredMarstek
 import ua.zilla.energy.model.EnergyUiState
 import ua.zilla.energy.model.EventKind
 import ua.zilla.energy.model.HistoryWindow
@@ -315,6 +316,56 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
         catch (_: IllegalArgumentException) {
             mutable.value = mutable.value.copy(error = "Invalid private LAN IP/port")
         }
+    }
+
+    /**
+     * One short, user-triggered (or first-setup) LAN broadcast scan.
+     * No device settings are changed by discovery.
+     */
+    fun discoverMarstek() {
+        if (mutable.value.isDiscovering) return
+        viewModelScope.launch {
+            val port = mutable.value.settings.port
+            mutable.value = mutable.value.copy(
+                isDiscovering = true,
+                discoveryAttempted = true,
+                discoveredDevices = emptyList(),
+                discoveryError = null
+            )
+            try {
+                val devices = api.discover(port)
+                mutable.value = mutable.value.copy(
+                    discoveredDevices = devices,
+                    discoveryError = if (devices.isEmpty()) {
+                        "No Marstek found. Enable Local API and verify the same Wi-Fi network."
+                    } else null
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: PhoneWifiUnavailableException) {
+                mutable.value = mutable.value.copy(
+                    discoveryError = "Connect this phone to the Marstek's Wi-Fi LAN first."
+                )
+            } catch (error: Exception) {
+                mutable.value = mutable.value.copy(
+                    discoveryError = "Scan failed: " + error.javaClass.simpleName +
+                        ". You can still enter the IP manually."
+                )
+            } finally {
+                mutable.value = mutable.value.copy(isDiscovering = false)
+            }
+        }
+    }
+
+    /** Selection is explicit: do not silently change the connected inverter. */
+    fun selectDiscoveredMarstek(device: DiscoveredMarstek) = viewModelScope.launch {
+        if (!LocalAddress.valid(device.host) || device.port !in 1..65535) {
+            mutable.value = mutable.value.copy(discoveryError = "Invalid discovered IP or UDP port")
+            return@launch
+        }
+        store.saveEndpoint(device.host, device.port)
+        store.setDemo(false)
+        mutable.value = mutable.value.copy(discoveryError = null)
     }
 
     fun setDemo(enabled: Boolean) = viewModelScope.launch { store.setDemo(enabled) }
