@@ -8,7 +8,14 @@
         android:label="@string/app_name"
         android:usesCleartextTraffic="false"
         android:theme="@style/Theme.ZillaEnergy"
+        android:localeConfig="@xml/locales_config"
         android:supportsRtl="true">
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data android:name="autoStoreLocales" android:value="true" />
+        </service>
         <activity
             android:name=".MainActivity"
             android:exported="true"
