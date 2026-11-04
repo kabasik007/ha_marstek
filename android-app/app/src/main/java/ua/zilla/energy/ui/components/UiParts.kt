@@ -70,5 +70,6 @@ fun connectionName(status: ConnectionStatus): String = when (status) {
     ConnectionStatus.ONLINE -> "Local API online"
     ConnectionStatus.DEGRADED -> "Unstable"
     ConnectionStatus.OFFLINE -> "Offline"
+    ConnectionStatus.PHONE_WIFI_UNAVAILABLE -> "Phone Wi-Fi off"
     ConnectionStatus.DISABLED -> "Not configured"
 }
