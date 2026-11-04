@@ -7,7 +7,7 @@ import ua.zilla.energy.model.EnergySnapshot
 import ua.zilla.energy.model.WifiDiagnostics
 
 /**
- * Marstek Device Local API Rev 3.1.2: parsing separated from transport so
+ * Marstek Device Local API: parsing separated from transport so
  * firmware variations can be tested without a physical inverter.
  */
 object MarstekProtocol {
