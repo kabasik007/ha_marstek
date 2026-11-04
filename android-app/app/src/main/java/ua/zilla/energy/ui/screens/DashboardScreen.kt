@@ -1,7 +1,6 @@
 package ua.zilla.energy.ui.screens
 
 import android.content.Intent
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -16,9 +15,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import ua.zilla.energy.R
 import ua.zilla.energy.model.ConnectionStatus
 import ua.zilla.energy.model.EnergyUiState
 import ua.zilla.energy.model.HistoryWindow
@@ -38,54 +38,59 @@ fun DashboardScreen(
 ) {
     val snap = state.snapshot
     val context = LocalContext.current
+    val exportChooser = stringResource(R.string.chart_export_chooser)
+
     Column(
         modifier.fillMaxSize().background(Mint.background)
             .verticalScroll(rememberScrollState()).padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Zilla Energy", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Text("Home energy monitor", color = Mint.muted)
+            Text("Zilla Energy", style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            IconButton(onClick = onSettings) {
+                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings))
             }
-            IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, "Settings") }
         }
-
         if (state.settings.demoMode) {
             Surface(color = Mint.subtle, shape = MaterialTheme.shapes.medium) {
-                Text("DEMO DATA — simulated values, not a connected Marstek",
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                Text(stringResource(R.string.demo_badge),
+                    modifier = Modifier.fillMaxWidth().padding(10.dp),
                     color = Mint.primary, style = MaterialTheme.typography.labelMedium)
             }
         }
         MintCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Wifi, null, tint = Mint.primary, modifier = Modifier.size(30.dp))
-                Spacer(Modifier.width(12.dp))
+                Icon(Icons.Default.Wifi, null, tint = Mint.primary,
+                    modifier = Modifier.size(28.dp))
+                Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Marstek energy storage", fontWeight = FontWeight.SemiBold)
-                    Text(if (state.settings.host.isBlank()) "No device configured"
-                         else state.settings.host + " • UDP " + state.settings.port,
-                        style = MaterialTheme.typography.bodySmall, color = Mint.muted)
+                    Text(stringResource(R.string.marstek_device), fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (state.settings.host.isBlank()) stringResource(R.string.not_configured)
+                        else state.settings.host + " · UDP " + state.settings.port,
+                        style = MaterialTheme.typography.bodySmall, color = Mint.muted
+                    )
                 }
                 DotLabel(connectionName(state.connection),
-                    if (state.connection == ConnectionStatus.ONLINE || state.connection == ConnectionStatus.DEMO)
-                        Mint.primary else Mint.warning)
+                    if (state.connection == ConnectionStatus.ONLINE ||
+                        state.connection == ConnectionStatus.DEMO) Mint.primary else Mint.warning)
             }
         }
 
         MintCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.BatteryChargingFull, null, tint = Mint.primary, modifier = Modifier.size(46.dp))
-                Spacer(Modifier.width(12.dp))
+                Icon(Icons.Default.BatteryChargingFull, null, tint = Mint.primary,
+                    modifier = Modifier.size(42.dp))
+                Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Battery", color = Mint.muted)
-                    Text(snap.socPercent?.let { it.toString() + "%" } ?: "—",
-                        style = MaterialTheme.typography.displayMedium, color = Mint.deep,
-                        fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.battery), color = Mint.muted)
+                    Text(snap.socPercent?.let { "$it%" } ?: "—",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = Mint.deep, fontWeight = FontWeight.Bold)
                 }
                 Column {
-                    Text("Battery power", color = Mint.muted,
+                    Text(stringResource(R.string.battery_power), color = Mint.muted,
                         style = MaterialTheme.typography.labelSmall)
                     Text(watts(snap.batteryPowerW), color = Mint.primary,
                         style = MaterialTheme.typography.titleMedium)
@@ -97,33 +102,39 @@ fun DashboardScreen(
                 color = Mint.leaf,
                 trackColor = Mint.subtle
             )
-            Text("Power direction/sign depends on firmware; no automatic charge/discharge claim.",
-                color = Mint.muted, style = MaterialTheme.typography.labelSmall)
-            if (snap.batteryCapacityWh != null)
-                Text("Reported total battery capacity: " +
-                    String.format(java.util.Locale.US, "%.2f kWh", snap.batteryCapacityWh / 1000.0),
-                    color = Mint.muted, style = MaterialTheme.typography.bodySmall)
+            snap.batteryCapacityWh?.let { capacity ->
+                val formatted = String.format(Locale.US, "%.2f", capacity / 1000.0)
+                Text(stringResource(R.string.total_capacity, formatted),
+                    style = MaterialTheme.typography.bodySmall, color = Mint.muted)
+            }
         }
 
         if (!state.settings.demoMode && state.lastSuccessMs != null) {
-            val stale = state.connection != ConnectionStatus.ONLINE
             Text(
-                (if (stale) "LAST KNOWN READING • " else "Last read • ") +
-                    clockTime(state.lastSuccessMs),
-                color = if (stale) Mint.warning else Mint.muted,
+                stringResource(
+                    if (state.connection == ConnectionStatus.ONLINE)
+                        R.string.last_read else R.string.last_known,
+                    clockTime(state.lastSuccessMs)
+                ),
+                color = if (state.connection == ConnectionStatus.ONLINE) Mint.muted else Mint.warning,
                 style = MaterialTheme.typography.labelMedium
             )
         }
+
         MintCard {
-            SectionHeading("Energy flow", "Latest device readings")
+            SectionHeading(stringResource(R.string.energy_flow))
             Row {
-                Metric("Battery", watts(snap.batteryPowerW), Modifier.weight(1f), Mint.primary)
-                Metric("Grid", watts(snap.gridPowerW), Modifier.weight(1f), Mint.blue)
+                Metric(stringResource(R.string.battery), watts(snap.batteryPowerW),
+                    Modifier.weight(1f), Mint.primary)
+                Metric(stringResource(R.string.grid), watts(snap.gridPowerW),
+                    Modifier.weight(1f), Mint.blue)
             }
             HorizontalDivider(color = Mint.subtle)
             Row {
-                Metric("Solar", watts(snap.solarPowerW), Modifier.weight(1f), Mint.leaf)
-                Metric("Off-grid", watts(snap.offgridPowerW), Modifier.weight(1f))
+                Metric(stringResource(R.string.solar), watts(snap.solarPowerW),
+                    Modifier.weight(1f), Mint.leaf)
+                Metric(stringResource(R.string.offgrid), watts(snap.offgridPowerW),
+                    Modifier.weight(1f))
             }
         }
 
@@ -147,47 +158,38 @@ fun DashboardScreen(
                     val csv = buildString {
                         appendLine("timestamp_utc,battery_W,grid_W,solar_W")
                         state.history.forEach { point ->
-                            fun value(v: Double?): String = v?.let {
-                                String.format(Locale.US, "%.3f", it)
-                            } ?: ""
-                            appendLine(
-                                formatter.format(Date(point.timestampMs)) + "," +
-                                    value(point.batteryW) + "," + value(point.gridW) + "," +
-                                    value(point.solarW)
-                            )
+                            fun value(v: Double?): String =
+                                v?.let { String.format(Locale.US, "%.3f", it) } ?: ""
+                            appendLine(formatter.format(Date(point.timestampMs)) + "," +
+                                value(point.batteryW) + "," + value(point.gridW) + "," +
+                                value(point.solarW))
                         }
                     }
                     val intent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/csv"
                         putExtra(Intent.EXTRA_TEXT, csv)
-                        putExtra(Intent.EXTRA_SUBJECT, "Marstek chart " + state.historyWindow.label)
                     }
-                    context.startActivity(Intent.createChooser(intent, "Share chart CSV"))
+                    context.startActivity(Intent.createChooser(intent, exportChooser))
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Share, contentDescription = null)
+                Icon(Icons.Default.Share, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Share chart CSV")
+                Text(stringResource(R.string.chart_export))
             }
-            Text(
-                if (state.settings.demoMode) "Simulated demo history"
-                else "Saved locally for up to 30 days. Logging requires the app to be running.",
-                color = Mint.muted, style = MaterialTheme.typography.labelSmall
-            )
             if (state.historyError != null)
-                Text(state.historyError, color = Mint.danger,
-                    style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.error_generic),
+                    color = Mint.danger, style = MaterialTheme.typography.labelSmall)
         }
 
         if (state.connection == ConnectionStatus.OFFLINE ||
             state.connection == ConnectionStatus.DEGRADED) {
             MintCard {
-                Text("Connection problem", color = Mint.danger, fontWeight = FontWeight.Bold)
-                Text("Missed UDP probes: " + state.consecutiveMisses +
-                    ". This does not confirm a device reboot.", color = Mint.muted)
+                Text(stringResource(R.string.connection_problem), color = Mint.danger,
+                    fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.missed_probes, state.consecutiveMisses),
+                    color = Mint.muted)
             }
         }
-        Spacer(Modifier.height(12.dp))
     }
 }
