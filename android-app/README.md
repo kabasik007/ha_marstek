@@ -13,14 +13,15 @@ which remains unchanged. It is a separate Gradle project under `android-app/`.
   probe response time, 24h observed API success ratio (excluding phone Wi-Fi
   losses), export through Android share sheet, and optional device-reported
   Wi-Fi RSSI/SSID and ES operating mode.
-- Cameras: local credential-free RTSP streams with Media3 ExoPlayer. One active
+- Cameras (parked): local credential-free RTSP streams with Media3 ExoPlayer. One active
   decoder at a time, camera list persisted in DataStore.
 - Control: documented read-only capability placeholders. **No write commands**
   are sent to the battery (no mode changes, reset, discharge limits).
 - Settings: local IP/port, Demo / Live switch, interval selection.
 - A tiny deterministic sample dataset so the UI can be developed without
   access to the physical inverter.
-- Unit tests for private LAN address validation and outage state machine.
+- JVM unit tests for IP/protocol parsing, chart windows and outage logic;
+  source-only instrumented Room DAO tests (not executed yet).
 
 ## Architecture
 
@@ -36,6 +37,8 @@ app/
       MarstekUdpClient.kt
       PreferencesStore.kt
       DemoEnergy.kt
+      PhoneNetworkInspector.kt
+      history/EnergyDatabase.kt, EnergyHistoryRepository.kt
     ui/
       EnergyApp.kt
       theme/ZillaTheme.kt
@@ -45,6 +48,9 @@ app/
 ```
 
 ## Connection contract and safety
+
+For a practical troubleshooting matrix see [Marstek LAN diagnostics](docs/MARSTEK_DIAGNOSTICS.md).
+
 
 The app starts in **Demo** mode. All readings in Demo are simulated.
 Enable the Marstek Local API first using the official app over Bluetooth,
