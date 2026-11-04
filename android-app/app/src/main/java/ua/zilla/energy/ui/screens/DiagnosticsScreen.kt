@@ -111,6 +111,8 @@ fun DiagnosticsScreen(state: EnergyUiState, onClear: () -> Unit, modifier: Modif
                     color = Mint.muted, style = MaterialTheme.typography.labelSmall)
             }
         }
+        RawApiCard(state.rawApiStatus, state.settings.demoMode)
+
         Surface(shape = MaterialTheme.shapes.medium, color = Color(0xFFFFF4E8)) {
             Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
                 Icon(Icons.Default.Warning, null, tint = Mint.warning)
