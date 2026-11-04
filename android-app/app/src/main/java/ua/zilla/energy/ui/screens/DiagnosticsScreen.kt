@@ -50,6 +50,26 @@ fun DiagnosticsScreen(state: EnergyUiState, onClear: () -> Unit, modifier: Modif
             }
         }
         MintCard {
+            SectionHeading("API reliability • last 24 hours", "Observed UDP polls; not inverter uptime")
+            val stats = state.probeStats
+            Row {
+                Metric("Responded", stats.reachabilityPercent?.let { "$" + "{it}%" } ?: "—",
+                    Modifier.weight(1f), Mint.primary)
+                Metric("Samples", stats.attempts.toString(), Modifier.weight(1f))
+            }
+            Row {
+                Metric("Timeouts", stats.timeouts.toString(), Modifier.weight(1f), Mint.warning)
+                Metric("API errors", stats.apiErrors.toString(), Modifier.weight(1f), Mint.danger)
+            }
+            if (stats.phoneWifiMissing > 0) {
+                Text("Phone Wi-Fi unavailable: " + stats.phoneWifiMissing +
+                    " polls, excluded from the Marstek response-rate calculation.",
+                    color = Mint.muted, style = MaterialTheme.typography.bodySmall)
+            }
+            Text("No automatic probing while the app is stopped. Percentages describe recorded requests only.",
+                color = Mint.muted, style = MaterialTheme.typography.labelSmall)
+        }
+        MintCard {
             SectionHeading("Marstek Wi-Fi", "Device-reported network information")
             if (!state.settings.advancedDiagnostics) {
                 Text("Advanced diagnostics are disabled. Enable them in Settings to read Wi-Fi signal and operating mode at most once every 5 minutes.",
@@ -87,9 +107,21 @@ fun DiagnosticsScreen(state: EnergyUiState, onClear: () -> Unit, modifier: Modif
                 IconButton(
                     enabled = state.events.isNotEmpty(),
                     onClick = {
-                        val report = state.events.joinToString("\n") {
-                            clockTime(it.timestampMs) + " | " + it.kind.name +
-                                " | " + it.title + " | " + it.detail
+                        val stats = state.probeStats
+                        val report = buildString {
+                            appendLine("Zilla Energy • Marstek read-only diagnostics")
+                            appendLine("Recorded API polls (24h): " + stats.attempts)
+                            appendLine("Successes: " + stats.successes)
+                            appendLine("Timeouts: " + stats.timeouts)
+                            appendLine("API errors: " + stats.apiErrors)
+                            appendLine("Phone Wi-Fi unavailable: " + stats.phoneWifiMissing)
+                            appendLine("Rate excludes phone Wi-Fi losses; not inverter uptime")
+                            appendLine("Offline API does not prove a device restart")
+                            appendLine()
+                            state.events.forEach {
+                                appendLine(clockTime(it.timestampMs) + " | " +
+                                    it.kind.name + " | " + it.title + " | " + it.detail)
+                            }
                         }
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
@@ -98,7 +130,7 @@ fun DiagnosticsScreen(state: EnergyUiState, onClear: () -> Unit, modifier: Modif
                         context.startActivity(Intent.createChooser(intent, "Share diagnostic events"))
                     }
                 ) { Icon(Icons.Default.Share, contentDescription = "Export events") }
-                TextButton(onClick = onClear, enabled = state.events.isNotEmpty()) { Text("Clear") }
+                TextButton(onClick = onClear, enabled = state.events.isNotEmpty()) { Text("Clear events") }
             }
             if (state.events.isEmpty()) {
                 Text("No recorded events. Switch to Live mode in Settings to start monitoring.",
