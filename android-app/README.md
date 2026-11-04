@@ -8,9 +8,10 @@ which remains unchanged. It is a separate Gradle project under `android-app/`.
 
 - Kotlin + Jetpack Compose + Material 3, pastel-mint design system.
 - Dashboard: battery, grid/solar/off-grid metrics, battery gauge and smooth
-  Canvas energy chart.
+  Canvas energy chart with 1H/24H/7D/30D ranges.
 - Diagnostics: persisted event timeline, outage/recovery classification,
-  probe response time, export to Android share sheet, and optional device-reported
+  probe response time, 24h observed API success ratio (excluding phone Wi-Fi
+  losses), export through Android share sheet, and optional device-reported
   Wi-Fi RSSI/SSID and ES operating mode.
 - Cameras: local credential-free RTSP streams with Media3 ExoPlayer. One active
   decoder at a time, camera list persisted in DataStore.
@@ -53,7 +54,8 @@ off Demo mode to begin live queries.
 The UDP client:
 - Issues only `ES.GetStatus` by default, serialized, at a configurable
   15–300 second interval; default 30 seconds. Explicitly opting into advanced
-  diagnostics additionally requests `Wifi.GetStatus` and `ES.GetMode` at most
+  diagnostics additionally requests `wifi.GetStatus` (as written in the public PDF request
+  example) and `ES.GetMode` at most
   once every 5 minutes. Both are read-only and can fail independently.
 - Opens a client receive socket on the same port as the device request,
   to support devices that respond only when UDP source/destination ports
@@ -75,7 +77,7 @@ physically rebooted. Cross-check router DHCP / Wi-Fi association logs and
 device status LEDs. Local API is unauthenticated UDP; keep it off untrusted
 networks and never port-forward it.
 
-## Cameras
+## Cameras (parked)
 
 Use `rtsp://<private-LAN-IP>:554/<stream>`, WITHOUT inline credentials,
 passwords or access tokens. Username/password-protected cameras need a
@@ -86,8 +88,15 @@ RTSP previews run on the phone only; the app does not relay camera streams.
 ## Persistence and current limitations
 
 - `Preferences DataStore` saves settings, camera entries and the latest 250
-  incident events. Charts use only recent *in-memory* readings, so a process
-  restart clears the chart while preserving the event timeline.
+  incident events. Room 2.8.5 + KSP persists real Marstek telemetry and
+  individual read-only probe outcomes for 30 days (retention is pruned during
+  active monitoring). Demo mode never writes to the Room database.
+- Chart history is bucket-averaged from the local database by device endpoint;
+  missing intervals remain blank. Selected bucket series can be explicitly
+  shared as UTC CSV without IP, MAC or SSID identifiers.
+- Read-only API response rate is an **observed probe success rate**, not actual
+  device uptime. Phone-side Wi-Fi outages are counted separately and excluded
+  from the rate. Event timeline is still limited to the last 250 entries.
 - Monitoring runs only while the app process/ViewModel is alive; there is
   **no foreground service or guaranteed background monitoring yet**.
 - Firmware versions, model-specific capabilities, BLE pairing, cloud fallback,
@@ -115,8 +124,9 @@ without creating an APK first. **No APK has been assembled.**
 
 1. Verify UDP socket behavior on the actual Marstek model and firmware.
 2. Add a device-aware `ES.GetMode` read, validated power sign semantics,
-   stable identity pinning and long-term chart storage (Room).
-3. Add an optional, user-approved background health monitor.
+   stable identity pinning and device model/firmware capability reporting.
+3. Add an optional, user-approved foreground health-monitor service to
+   survive UI closure where Android policy permits, with explicit controls.
 4. Integrate secure RTSP authentication and optional ONVIF discovery.
 5. Add localization (Ukrainian / English), backup/import of settings,
    and carefully permissioned per-model write controls.
@@ -129,5 +139,9 @@ Wi-Fi dropouts take priority. The backend does **not** identify physical inverte
 reboots; it only tracks API responses. All advanced requests are optional to
 minimize potential load on problematic firmware.
 
-API contract: [Marstek Device Local API Rev 3.1.2](https://static-eu.marstekcloud.com/ems/resource/agreement/MarstekDeviceOpenApi.pdf),
-sections Wifi.GetStatus, ES.GetStatus, ES.GetMode.
+API protocol: the [public Marstek Device Open API PDF](https://static-eu.marstekcloud.com/ems/resource/agreement/MarstekDeviceOpenApi.pdf)
+currently identifies itself as **Rev 2.0**, while this repository also bundles
+a **Rev 3.1.2** PDF under `docs/`. The public PDF's Wi-Fi request example
+uses lowercase `wifi.GetStatus` while the section title says
+`Wifi.GetStatus`; firmware method case handling remains unverified.
+Supported methods vary by model and firmware.
