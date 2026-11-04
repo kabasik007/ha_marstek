@@ -4,6 +4,15 @@ enum class DataSource { DEMO, LOCAL_API }
 enum class ConnectionStatus { DEMO, CONNECTING, ONLINE, DEGRADED, OFFLINE, PHONE_WIFI_UNAVAILABLE, DISABLED }
 enum class EnergyMode { AUTO, AI, MANUAL, PASSIVE, UPS, UNKNOWN }
 
+/** Latest redacted read-only API reply; in memory only, never persisted. */
+data class RawApiStatus(
+    val timestampMs: Long,
+    val payload: String,
+    val absentFields: List<String>,
+    val nullFields: List<String>,
+    val reportedFields: Int
+)
+
 data class EnergySnapshot(
     val timestampMs: Long = System.currentTimeMillis(),
     val source: DataSource = DataSource.DEMO,
@@ -95,6 +104,7 @@ data class AppSettings(
 data class EnergyUiState(
     val settings: AppSettings = AppSettings(),
     val snapshot: EnergySnapshot = EnergySnapshot(),
+    val rawApiStatus: RawApiStatus? = null,
     val connection: ConnectionStatus = ConnectionStatus.DEMO,
     val events: List<EnergyEvent> = emptyList(),
     val history: List<PowerPoint> = emptyList(),
