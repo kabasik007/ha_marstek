@@ -8,6 +8,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import ua.zilla.energy.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,12 +66,13 @@ fun watts(w: Double?): String = if (w == null) "—" else {
 fun clockTime(timestamp: Long): String =
     SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()).format(Date(timestamp))
 
-fun connectionName(status: ConnectionStatus): String = when (status) {
-    ConnectionStatus.DEMO -> "Demo"
-    ConnectionStatus.CONNECTING -> "Connecting"
-    ConnectionStatus.ONLINE -> "Local API online"
-    ConnectionStatus.DEGRADED -> "Unstable"
-    ConnectionStatus.OFFLINE -> "Offline"
-    ConnectionStatus.PHONE_WIFI_UNAVAILABLE -> "Phone Wi-Fi off"
-    ConnectionStatus.DISABLED -> "Not configured"
-}
+@Composable
+fun connectionName(status: ConnectionStatus): String = stringResource(when (status) {
+    ConnectionStatus.DEMO -> R.string.status_demo
+    ConnectionStatus.CONNECTING -> R.string.status_connecting
+    ConnectionStatus.ONLINE -> R.string.status_online
+    ConnectionStatus.DEGRADED -> R.string.status_degraded
+    ConnectionStatus.OFFLINE -> R.string.status_offline
+    ConnectionStatus.PHONE_WIFI_UNAVAILABLE -> R.string.status_phone_wifi
+    ConnectionStatus.DISABLED -> R.string.status_disabled
+})
