@@ -70,6 +70,25 @@ fun DiagnosticsScreen(state: EnergyUiState, onClear: () -> Unit, modifier: Modif
                 color = Mint.muted, style = MaterialTheme.typography.labelSmall)
         }
         MintCard {
+            SectionHeading("Android phone network", "LAN and internet are separate")
+            Row {
+                Metric("Phone Wi-Fi LAN",
+                    when (state.phoneWifiAvailable) {
+                        true -> "Available"
+                        false -> "Unavailable"
+                        null -> "—"
+                    }, Modifier.weight(1f))
+                Metric("Internet check",
+                    when (state.phoneInternetValidated) {
+                        true -> "Validated"
+                        false -> "Not validated"
+                        null -> "Unknown"
+                    }, Modifier.weight(1f))
+            }
+            Text("Android validation is not a direct ISP test. A router may have no internet while local API still works.",
+                color = Mint.muted, style = MaterialTheme.typography.bodySmall)
+        }
+        MintCard {
             SectionHeading("Marstek Wi-Fi", "Device-reported network information")
             if (!state.settings.advancedDiagnostics) {
                 Text("Advanced diagnostics are disabled. Enable them in Settings to read Wi-Fi signal and operating mode at most once every 5 minutes.",
