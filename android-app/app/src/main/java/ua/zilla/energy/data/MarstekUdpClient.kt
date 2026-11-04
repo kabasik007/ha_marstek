@@ -38,9 +38,19 @@ class MarstekUdpClient(private val context: Context) {
         MarstekDiscovery(context).search(port)
     }
 
-    suspend fun readStatus(host: String, port: Int): EnergySnapshot = mutex.withLock {
+    /** Parse and inspect one ES.GetStatus reply: never send a second probe. */
+    data class StatusReading(
+        val snapshot: EnergySnapshot,
+        val rawStatus: ua.zilla.energy.model.RawApiStatus
+    )
+
+    suspend fun readStatus(host: String, port: Int): StatusReading = mutex.withLock {
         val result = request(host, port, "ES.GetStatus")
-        MarstekProtocol.parseEnergy(result)
+        val atMs = System.currentTimeMillis()
+        StatusReading(
+            snapshot = MarstekProtocol.parseEnergy(result, atMs),
+            rawStatus = RawStatusSnapshot.fromResult(result, atMs)
+        )
     }
 
     data class AdvancedReading(
