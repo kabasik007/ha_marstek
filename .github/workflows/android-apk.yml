@@ -66,8 +66,11 @@ jobs:
           methods = set(re.findall(r'request\(host,\s*port,\s*"([^"]+)"', udp))
           allowed = {"ES.GetStatus", "wifi.GetStatus", "ES.GetMode"}
           print("Marstek commands:", sorted(methods))
-          if not methods or not methods <= allowed:
-              raise SystemExit(f"Not read-only: {methods - allowed}")
+          discovery = (root / "data/MarstekDiscovery.kt").read_text()
+          broadcast = set(re.findall(r'\.put\("method",\s*"([^"]+)"\)', discovery))
+          if not methods or not methods <= allowed or broadcast != {"Marstek.GetDevice"}:
+              raise SystemExit(f"Unexpected methods: {methods - allowed}; discovery={broadcast}")
+          print("Discovery commands:", sorted(broadcast))
           PY
 
       - name: Run Kotlin unit tests
