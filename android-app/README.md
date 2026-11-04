@@ -47,6 +47,24 @@ app/
               CamerasScreen.kt, ControlScreen.kt, SettingsScreen.kt
 ```
 
+## Grid power direction fix (0.5.1)
+
+For the Venus E 3.0 V150, `ES.GetStatus.ongrid_power = -1740` W
+was observed at the same time the official Marstek app displayed
+charging from grid at **1.74 kW**.
+
+The dashboard now displays **From grid ↓ 1.74 kW** (Ukrainian:
+**Із мережі ↓ 1,74 кВт**). Positive readings display
+**To grid ↑**, zero shows idle grid power, missing shows `—`.
+
+**Important:** this is a *presentation-only* change. Modbus/UDP raw values,
+Room history, graphs, CSV exports, debug JSON, and signed sign conventions
+stay unchanged. No new UDP requests or setting/control commands were added.
+Do not infer battery DC-side wattage from this AC flow reading.
+
+References: community Venus E 3.0 sign conventions and official app
+capture dated 2026-11-04.
+
 ## Experimental Venus E 3.0 Ethernet BMS (0.5.0)
 
 A new **BMS** tab provides an explicitly manual, read-only Modbus TCP test.
