@@ -74,6 +74,7 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
             mutable.value = mutable.value.copy(
                 connection = ConnectionStatus.DEMO,
                 snapshot = DemoEnergy.snapshot(),
+                rawApiStatus = null,
                 history = demoChart(mutable.value.historyWindow),
                 probeStats = ProbeStats(),
                 historyError = null,
@@ -90,6 +91,7 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
                 delay(5_000)
                 mutable.value = mutable.value.copy(
                     snapshot = DemoEnergy.snapshot(),
+                rawApiStatus = null,
                     history = demoChart(mutable.value.historyWindow)
                 )
             }
@@ -100,6 +102,7 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
             mutable.value = mutable.value.copy(
                 connection = ConnectionStatus.DISABLED,
                 snapshot = EnergySnapshot(source = DataSource.LOCAL_API),
+                rawApiStatus = null,
                 history = emptyList(),
                 probeStats = ProbeStats(),
                 wifi = null, lastSuccessMs = null, lastRoundTripMs = null,
@@ -140,7 +143,8 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
             }
             val startMs = System.currentTimeMillis()
             try {
-                val snap = api.readStatus(settings.host, settings.port)
+                val reading = api.readStatus(settings.host, settings.port)
+                val snap = reading.snapshot
                 val nowMs = System.currentTimeMillis()
                 val wasPhoneOffline =
                     mutable.value.connection == ConnectionStatus.PHONE_WIFI_UNAVAILABLE
@@ -149,6 +153,7 @@ class EnergyViewModel(application: Application) : AndroidViewModel(application) 
 
                 mutable.value = mutable.value.copy(
                     snapshot = snap,
+                    rawApiStatus = reading.rawStatus,
                     connection = tracker.status,
                     consecutiveMisses = 0,
                     error = null,
