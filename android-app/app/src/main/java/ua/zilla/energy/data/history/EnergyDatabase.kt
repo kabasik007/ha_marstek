@@ -56,6 +56,7 @@ data class ProbeSummary(
     val attempts: Long,
     val successes: Long,
     val timedOut: Long,
+    val apiErrors: Long,
     val phoneWifiMissing: Long,
     val firstProbeMs: Long?,
     val lastProbeMs: Long?
@@ -84,6 +85,7 @@ interface EnergyDao {
         """SELECT COUNT(*) AS attempts,
                   COALESCE(SUM(CASE WHEN result = 'ok' THEN 1 ELSE 0 END), 0) AS successes,
                   COALESCE(SUM(CASE WHEN result = 'timeout' THEN 1 ELSE 0 END), 0) AS timedOut,
+                  COALESCE(SUM(CASE WHEN result = 'api_error' THEN 1 ELSE 0 END), 0) AS apiErrors,
                   COALESCE(SUM(CASE WHEN result = 'phone_wifi' THEN 1 ELSE 0 END), 0) AS phoneWifiMissing,
                   MIN(timestampMs) AS firstProbeMs,
                   MAX(timestampMs) AS lastProbeMs
