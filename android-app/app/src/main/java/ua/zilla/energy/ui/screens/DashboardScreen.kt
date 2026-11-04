@@ -17,11 +17,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ua.zilla.energy.model.ConnectionStatus
 import ua.zilla.energy.model.EnergyUiState
+import ua.zilla.energy.model.HistoryWindow
 import ua.zilla.energy.ui.components.*
 import ua.zilla.energy.ui.theme.Mint
 
 @Composable
-fun DashboardScreen(state: EnergyUiState, onSettings: () -> Unit, modifier: Modifier = Modifier) {
+fun DashboardScreen(
+    state: EnergyUiState,
+    onSettings: () -> Unit,
+    onWindow: (HistoryWindow) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val snap = state.snapshot
     Column(
         modifier.fillMaxSize().background(Mint.background)
@@ -113,9 +119,25 @@ fun DashboardScreen(state: EnergyUiState, onSettings: () -> Unit, modifier: Modi
         }
 
         MintCard {
-            PowerChart(state.history)
-            Text("Actual readings are collected only while this app is open.",
-                color = Mint.muted, style = MaterialTheme.typography.labelSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                HistoryWindow.entries.forEach { window ->
+                    FilterChip(
+                        selected = state.historyWindow == window,
+                        onClick = { onWindow(window) },
+                        label = { Text(window.label) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            PowerChart(state.history, state.historyWindow)
+            Text(
+                if (state.settings.demoMode) "Simulated demo history"
+                else "Saved locally for up to 30 days. Logging requires the app to be running.",
+                color = Mint.muted, style = MaterialTheme.typography.labelSmall
+            )
+            if (state.historyError != null)
+                Text(state.historyError, color = Mint.danger,
+                    style = MaterialTheme.typography.bodySmall)
         }
 
         if (state.connection == ConnectionStatus.OFFLINE ||
